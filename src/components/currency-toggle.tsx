@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 export function CurrencyToggle({ value, onChange }: { value: CurrencyMode; onChange: (mode: CurrencyMode) => void }) {
   const { t } = useI18n()
   return (
-    <div role="radiogroup" aria-label={t("invoices.currency")} className="inline-flex rounded-lg bg-muted p-[3px] text-sm">
+    <div role="radiogroup" aria-label={t("invoices.currency")} className="inline-flex rounded-lg border bg-card p-[3px] text-sm shadow-xs">
       {CURRENCY_MODES.map((m) => (
         <button
           key={m}
@@ -18,7 +18,7 @@ export function CurrencyToggle({ value, onChange }: { value: CurrencyMode; onCha
           onClick={() => onChange(m)}
           className={cn(
             "rounded-md px-3 py-1 font-medium whitespace-nowrap transition-colors",
-            value === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            value === m ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
           )}
         >
           {t(`invoices.mode.${m}`)}
