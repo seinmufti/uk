@@ -162,6 +162,7 @@ const en = {
     payment: "Payment",
     paidInFull: "Paid in full",
     paidAmount: "Paid",
+    paidAmountToggle: "Paid amount",
     balanceDue: "Balance due",
     partlyPaid: "Partly paid",
     currency: "Currency",

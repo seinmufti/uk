@@ -69,6 +69,7 @@ export function InvoiceForm({
   const cur = inIqd ? "IQD" : "USD"
   const paidLines = payment === "full" ? linesTotal : payment === "none" ? 0 : Math.min(num(paidText), linesTotal)
   const dueLines = Math.max(0, linesTotal - paidLines)
+  const coversTotal = payment === "part" && linesTotal > 0 && num(paidText) >= linesTotal
 
   // Switching to or from IQD converts the typed costs, so the invoice keeps its value
   const changeMode = (next: CurrencyMode) => {
@@ -216,24 +217,33 @@ export function InvoiceForm({
       <div className={cn("grid gap-3", AREA.payment)}>
         <div className="text-sm font-medium">{t("invoices.payment")}</div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant={payment === "full" ? "default" : "outline"} onClick={() => setPayment("full")}>
-            <Check /> {t("invoices.paidInFull")}
-          </Button>
           <Button type="button" variant={payment === "none" ? "default" : "outline"} onClick={() => (setPayment("none"), setPaidText(""))}>
             {t("invoices.status.unpaid")}
           </Button>
-          <div className="flex items-center gap-2 sm:ms-auto">
-            <span className="text-sm text-muted-foreground">{t("invoices.paidAmount")} ({cur})</span>
-            <NumberInput
-              value={payment === "full" ? String(inIqd ? Math.round(linesTotal) : round2(linesTotal)) : paidText}
-              onChange={(e) => {
-                setPaidText(e.target.value)
-                setPayment(num(e.target.value) <= 0 ? "none" : num(e.target.value) >= linesTotal && linesTotal > 0 ? "full" : "part")
-              }}
-              placeholder="0"
-              className={cn("w-36 text-end tabular-nums", AREA.rate)}
-            />
-          </div>
+          <Button
+            type="button"
+            variant={payment === "full" ? "default" : "outline"}
+            onClick={() => setPayment("full")}
+            // A typed amount that covers the whole invoice lights this up too (the amount box stays open)
+            className={cn(coversTotal && "border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-950 dark:text-emerald-300")}
+          >
+            <Check /> {t("invoices.paidInFull")}
+          </Button>
+          <Button type="button" variant={payment === "part" ? "default" : "outline"} onClick={() => setPayment("part")}>
+            {t("invoices.paidAmountToggle")}
+          </Button>
+          {payment === "part" && (
+            <div className="flex items-center gap-2 sm:ms-auto">
+              <span className="text-sm text-muted-foreground">{t("invoices.paidAmount")} ({cur})</span>
+              <NumberInput
+                autoFocus
+                value={paidText}
+                onChange={(e) => setPaidText(e.target.value)}
+                placeholder="0"
+                className={cn("w-36 text-end tabular-nums", AREA.rate)}
+              />
+            </div>
+          )}
         </div>
         <div className="flex items-center justify-between border-t pt-3 text-sm">
           <span className="text-muted-foreground">{t("invoices.balanceDue")}</span>
