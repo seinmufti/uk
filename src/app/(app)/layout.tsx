@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button"
 import { getT } from "@/i18n/server"
 import { signOut } from "@/lib/actions/session"
 import { DB_READY } from "@/lib/db"
+import { redirect } from "next/navigation"
+import { getSession } from "@/lib/auth"
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
+  if (!(await getSession())) redirect("/login")
   const t = await getT()
   return (
     <div className="flex h-dvh">

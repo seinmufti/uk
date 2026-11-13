@@ -2,8 +2,11 @@ import { Calculator } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getT } from "@/i18n/server"
 import { signInDemo } from "@/lib/actions/session"
+import { redirect } from "next/navigation"
+import { getSession } from "@/lib/auth"
 
 export default async function LoginPage() {
+  if (await getSession()) redirect("/invoices")
   const t = await getT()
   return (
     <main className="flex min-h-dvh items-center justify-center bg-muted/40 p-4">
