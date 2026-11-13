@@ -42,14 +42,21 @@ export function LiveData() {
   useEffect(() => {
     if (preloaded.current) return
     preloaded.current = true
-    for (const href of SECTIONS) {
+    const sections = SECTIONS.filter((href) => {
       const f = featureOf(href)
-      if (!f || isEnabled(f)) keep(href)
+      return !f || isEnabled(f)
+    })
+    // Every section, plus every invoice, purchase and receipt, so opening any of them is instant.
+    // The browser loads the most recently queued pages first, so the invoices list and the newest
+    // invoices are queued last.
+    const queue = (docs: string[]) => {
+      for (const href of sections) if (href !== "/invoices") keep(href)
+      for (const href of [...docs].reverse()) keep(href)
+      if (sections.includes("/invoices")) keep("/invoices")
     }
-    // Then every invoice, purchase and receipt, so opening any of them is instant
     documentPages()
-      .then((pages) => pages.forEach((href) => keep(href)))
-      .catch(() => {})
+      .then(queue)
+      .catch(() => queue([]))
   }, [keep])
 
   // On each page change: show the copy we have, then check for newer data.
