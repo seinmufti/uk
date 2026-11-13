@@ -1,7 +1,7 @@
 "use client"
 
 import { Search } from "lucide-react"
-import Link from "next/link"
+import { HoverLink } from "./hover-link"
 import { useSelectedLayoutSegment } from "next/navigation"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
@@ -44,7 +44,7 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
       <div className="min-h-0 flex-1 overflow-auto">
         {shown.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{items.length ? t("common.noData") : empty}</p>}
         {shown.map((item) => (
-          <Link
+          <HoverLink
             key={item.id}
             href={`${basePath}/${item.id}`}
             className={cn("block border-b px-3 py-2.5 transition-colors hover:bg-muted/60", selected === item.id && "bg-muted")}
@@ -64,7 +64,7 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
                 {formatDate(item.date)}
               </span>
             </div>
-          </Link>
+          </HoverLink>
         ))}
       </div>
     </>

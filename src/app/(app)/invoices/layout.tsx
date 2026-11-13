@@ -17,7 +17,7 @@ export default async function InvoicesLayout({ children }: LayoutProps<"/invoice
         inset={false}
         title={t("invoices.title")}
         actions={
-          <Link href="/invoices/new" className={buttonVariants()}>
+          <Link href="/invoices/new" prefetch className={buttonVariants()}>
             <Plus /> {t("invoices.new")}
           </Link>
         }

@@ -17,7 +17,7 @@ export default async function PurchasesLayout({ children }: LayoutProps<"/purcha
         inset={false}
         title={t("purchases.title")}
         actions={
-          <Link href="/purchases/new" className={buttonVariants()}>
+          <Link href="/purchases/new" prefetch className={buttonVariants()}>
             <Plus /> {t("purchases.new")}
           </Link>
         }

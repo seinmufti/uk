@@ -3,6 +3,7 @@ import { db, DB_READY } from "./db"
 import { num } from "./money"
 
 const SOURCE = "https://borsa-alam.com/get_prices.php"
+let lastSaved = 0
 
 /**
  * Today's USD sell rate in IQD per 100 USD (e.g. 169350), from borsa-alam. Cached for 5 minutes.
@@ -16,8 +17,9 @@ export async function getRate(): Promise<{ rate: number; live: boolean } | null>
     const row = rows.find((r) => r.id === 1) ?? rows[0]
     const rate = num(row?.sell_rate)
     if (!rate) throw new Error("No rate")
-    if (DB_READY) {
-      // Remember it for when the site is down (no need to wait for this)
+    if (DB_READY && rate !== lastSaved) {
+      // Remember it for when the site is down (only when it changed; no need to wait for this)
+      lastSaved = rate
       void db().from("settings").update({ last_rate_per_100: rate }).eq("id", 1).then(() => {})
     }
     return { rate, live: true }

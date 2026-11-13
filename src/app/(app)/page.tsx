@@ -54,6 +54,7 @@ export default async function HomePage() {
           <h2 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{t(g.title)}</h2>
           {g.tiles.map(({ href, label, desc, icon: Icon }) => (
             <Link
+              prefetch
               key={href}
               href={href}
               className="group flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-foreground/20 hover:bg-muted/50"
