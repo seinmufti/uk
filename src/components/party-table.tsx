@@ -60,7 +60,7 @@ export function PartyTable({ table, rows, extra }: { table: "customers" | "suppl
             <TableRow>
               <TableHead>{t("common.name")}</TableHead>
               <TableHead>{t("common.phone")}</TableHead>
-              <TableHead className="hidden md:table-cell">{t("common.address")}</TableHead>
+              {!isCustomer && <TableHead className="hidden md:table-cell">{t("common.address")}</TableHead>}
               {extra && <TableHead className="text-end">{t("customers.invoices")}</TableHead>}
               <TableHead className="w-28" />
             </TableRow>
@@ -86,7 +86,7 @@ export function PartyTable({ table, rows, extra }: { table: "customers" | "suppl
                 <TableCell dir="ltr" className="text-start">
                   {row.phone || "—"}
                 </TableCell>
-                <TableCell className="hidden text-muted-foreground md:table-cell">{row.address || "—"}</TableCell>
+                {!isCustomer && <TableCell className="hidden text-muted-foreground md:table-cell">{row.address || "—"}</TableCell>}
                 {extra && <TableCell className="text-end tabular-nums">{extra[row.id] ?? "—"}</TableCell>}
                 <TableCell>
                   <div className="flex justify-end gap-1">

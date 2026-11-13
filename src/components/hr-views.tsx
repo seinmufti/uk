@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { NumberInput } from "./number-input"
+import { PhoneInput } from "./phone-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { useAction } from "./use-action"
 
@@ -94,7 +95,7 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
           <Input value={form.position} onChange={(e) => set("position", e.target.value)} />
         </Field>
         <Field label={t("common.phone")}>
-          <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} dir="ltr" type="tel" placeholder="+964" />
+          <PhoneInput value={form.phone} onChange={(phone) => set("phone", phone)} />
         </Field>
         <Field label={t("hr.salary")}>
           <NumberInput  step="0.01" min="0" value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} required />

@@ -1,5 +1,6 @@
 "use client"
 
+import { PhoneInput } from "./phone-input"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -64,11 +65,13 @@ export function PartyDialog({
             <Input value={form.name} onChange={set("name")} required autoFocus />
           </Field>
           <Field label={t("common.phone")}>
-            <Input value={form.phone} onChange={set("phone")} dir="ltr" type="tel" placeholder="+964" />
+            <PhoneInput value={form.phone} onChange={(phone) => setForm({ ...form, phone })} />
           </Field>
-          <Field label={t("common.address")}>
-            <Input value={form.address} onChange={set("address")} />
-          </Field>
+          {!isCustomer && (
+            <Field label={t("common.address")}>
+              <Input value={form.address} onChange={set("address")} />
+            </Field>
+          )}
           <Field label={t("common.notes")}>
             <Textarea value={form.notes} onChange={set("notes")} rows={2} />
           </Field>
