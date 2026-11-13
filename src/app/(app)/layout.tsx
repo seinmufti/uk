@@ -2,6 +2,7 @@ import { Calculator } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
+import { LiveData } from "@/components/live-data"
 import { RateBadge } from "@/components/rate-badge"
 import { SettingsMenu } from "@/components/settings-menu"
 import { getT } from "@/i18n/server"
@@ -13,6 +14,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const t = await getT()
   return (
     <div className="flex h-dvh flex-col">
+      <LiveData />
       <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 md:px-5 print:hidden">
         <Link href="/" className="flex items-center gap-2 rounded-md px-1 py-1 hover:opacity-80">
           <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
