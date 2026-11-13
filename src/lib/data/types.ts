@@ -94,3 +94,35 @@ export type PayrollRow = {
   paid_at: string | null
   notes: string | null
 }
+
+export type ReceiptKind = "in" | "out"
+export const RECEIPT_METHODS = ["cash", "bank", "other"] as const
+export type ReceiptMethod = (typeof RECEIPT_METHODS)[number]
+export type Receipt = {
+  id: string
+  kind: ReceiptKind
+  number: number
+  date: string
+  customer_id: string | null
+  supplier_id: string | null
+  party: string
+  amount_usd: number
+  rate_per_100: number
+  method: ReceiptMethod
+  invoice_id: string | null
+  debt_id: string | null
+  notes: string | null
+  /** What it paid, e.g. "Invoice 0002", or the debt's note */
+  for_label: string | null
+}
+
+/** Something a receipt can settle: an unpaid invoice (in full) or what is left of a debt. */
+export type OpenItem = {
+  type: "invoice" | "debt"
+  id: string
+  label: string
+  remaining: number
+  customer_id: string | null
+  supplier_id: string | null
+  party: string
+}

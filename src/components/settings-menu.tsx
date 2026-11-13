@@ -1,0 +1,70 @@
+"use client"
+
+import { Languages, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
+import { useTransition } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { LOCALE_NAMES, LOCALES } from "@/i18n/locales"
+import { useI18n } from "@/i18n/provider"
+import { signOut } from "@/lib/actions/session"
+
+const THEMES = [
+  { value: "light", label: "settings.light", icon: Sun },
+  { value: "dark", label: "settings.dark", icon: Moon },
+  { value: "system", label: "settings.system", icon: Monitor },
+] as const
+
+/** The gear in the top bar: theme, language (coming later) and sign out. */
+export function SettingsMenu() {
+  const { t, locale } = useI18n()
+  const { theme = "system", setTheme } = useTheme()
+  const [pending, start] = useTransition()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={t("settings.title")} title={t("settings.title")} />}>
+        <Settings />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{t("settings.theme")}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setTheme(String(v))}>
+            {THEMES.map(({ value, label, icon: Icon }) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                <Icon /> {t(label)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex items-center gap-1.5">
+            <Languages className="size-3.5" /> {t("settings.language")}
+            <span className="ms-auto text-[10px] font-normal">{t("settings.soon")}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={locale}>
+            {LOCALES.map((l) => (
+              <DropdownMenuRadioItem key={l} value={l} disabled={l !== "en"}>
+                {LOCALE_NAMES[l]}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled={pending} onClick={() => start(() => signOut())}>
+          <LogOut /> {t("app.signOut")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}

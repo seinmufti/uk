@@ -53,7 +53,7 @@ export async function deleteEmployee(id: string) {
 
 const LeaveSchema = z
   .object({
-    employee_id: z.string().uuid(),
+    employee_id: z.guid(),
     from_date: z.string().min(1),
     to_date: z.string().min(1),
     type: z.enum(["paid", "unpaid", "sick"]),
@@ -70,7 +70,7 @@ export async function deleteLeave(id: string) {
 }
 
 const AbsenceSchema = z.object({
-  employee_id: z.string().uuid(),
+  employee_id: z.guid(),
   date: z.string().min(1),
   days: z.coerce.number().positive(),
   notes: z.string().trim().nullable().optional(),

@@ -9,7 +9,7 @@ import { fail, type ActionResult } from "./result"
 
 const PurchaseSchema = z.object({
   date: z.string().min(1),
-  supplier_id: z.string().uuid().nullable(),
+  supplier_id: z.guid().nullable(),
   payment_status: z.enum(["paid", "debt"]),
   amount_paid_usd: z.coerce.number().min(0),
   notes: z.string().trim().nullable().optional(),

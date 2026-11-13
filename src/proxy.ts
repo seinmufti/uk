@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 
-const SESSION_COOKIE = "uk-session"
+import { SESSION_COOKIE } from "@/lib/session-cookie"
 
 /**
  * Pages send signed-out people to /login themselves (the (app) layout), because Next's redirect() writes a

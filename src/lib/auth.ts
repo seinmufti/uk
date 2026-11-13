@@ -3,7 +3,8 @@ import { cookies } from "next/headers"
 
 // Sign-in for now is a single demo account: a cookie. Later the admin will create users with
 // usernames and passwords; this file is the one place to change.
-export const SESSION_COOKIE = "uk-session"
+export { SESSION_COOKIE } from "./session-cookie"
+import { SESSION_COOKIE } from "./session-cookie"
 
 export async function getSession() {
   const value = (await cookies()).get(SESSION_COOKIE)?.value

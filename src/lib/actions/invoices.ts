@@ -8,7 +8,7 @@ import { fail, type ActionResult } from "./result"
 
 const InvoiceSchema = z.object({
   date: z.string().min(1),
-  customer_id: z.string().uuid().nullable(),
+  customer_id: z.guid().nullable(),
   rate_per_100: z.coerce.number().positive("Exchange rate is required"),
   notes: z.string().trim().nullable().optional(),
   items: z

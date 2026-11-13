@@ -27,13 +27,15 @@ function buckets(period: Period, from: string, to: string) {
 
 /** Everything the reports page shows for one period, plus the balance sheet as of the period's end. */
 export async function getReport(period: Period, from: string, to: string) {
-  const [invoices, expenses, purchases, inventory, debts, settings] = await Promise.all([
+  const [invoices, expenses, purchases, inventory, debts, settings, receipts] = await Promise.all([
     db().from("invoices").select("date, status, invoice_items(total_usd)").lte("date", to),
     db().from("expenses").select("date, category, amount_usd").lte("date", to),
     db().from("purchases").select("date, amount_paid_usd, purchase_items(qty, unit_cost_usd)").lte("date", to),
     db().from("inventory_items").select("kind, value_usd, date").lte("date", to),
     db().from("debts").select("direction, amount_usd, paid_usd, purchase_id, date").lte("date", to),
     db().from("settings").select("zakat_percent").eq("id", 1).single(),
+    // Receipts that paid an invoice or a debt are already counted there; only "on account" ones add to cash
+    db().from("receipts").select("kind, amount_usd").is("invoice_id", null).is("debt_id", null).lte("date", to),
   ])
 
   const inv = must(invoices).map((i) => ({ date: i.date as string, paid: i.status === "paid", total: i.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0) }))
@@ -106,7 +108,8 @@ export async function getReport(period: Period, from: string, to: string) {
       sum(receivableDebts, (d) => d.paid) -
       sum(exp, (e) => e.amount) -
       sum(pur, (p) => p.paid) -
-      sum(payableDebts, (d) => d.paid),
+      sum(payableDebts, (d) => d.paid) +
+      sum(must(receipts), (r) => (r.kind === "in" ? 1 : -1) * num(r.amount_usd)),
   )
   const totalAssets = round2(cash + stock + fixedAssets + receivables)
   const totalLiabilities = payables

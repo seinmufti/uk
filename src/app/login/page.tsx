@@ -7,7 +7,7 @@ import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 
 export default async function LoginPage() {
-  if (await getSession()) redirect("/invoices")
+  if (await getSession()) redirect("/")
   const t = await getT()
   return (
     <main className="relative flex min-h-dvh items-center justify-center bg-muted/40 p-4">
