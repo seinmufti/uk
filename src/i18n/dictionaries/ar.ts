@@ -48,7 +48,6 @@ const ar: DeepPartial<Messages> = {
     language: "لغة الفاتورة",
     print: "طباعة أو حفظ كـ PDF",
     back: "رجوع",
-    hint: "في نافذة الطباعة اختر «Save as PDF» للحصول على ملف PDF.",
   },
   common: {
     save: "حفظ",

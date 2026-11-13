@@ -48,7 +48,6 @@ const ckb: DeepPartial<Messages> = {
     language: "زمانی پسوولە",
     print: "چاپکردن یان پاشەکەوتکردن وەک PDF",
     back: "گەڕانەوە",
-    hint: "لە پەنجەرەی چاپدا «Save as PDF» هەڵبژێرە بۆ وەرگرتنی فایلی PDF.",
   },
   common: {
     save: "پاشەکەوت",

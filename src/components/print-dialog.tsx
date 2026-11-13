@@ -1,7 +1,7 @@
 "use client"
 
 import { Printer } from "lucide-react"
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -49,15 +49,43 @@ export function PrintDialog({ sheets }: { sheets: Record<Locale, React.ReactNode
             <Button onClick={() => window.print()} className="ms-auto">
               <Printer /> {t("printPage.print")}
             </Button>
-            <p className="w-full text-xs text-muted-foreground">{t("printPage.hint")}</p>
           </div>
-          {/* The page preview, scrolling inside the modal */}
-          <div className="min-h-0 flex-1 overflow-auto bg-muted/50 p-4 sm:p-6">
-            <div className="mx-auto max-w-[210mm] rounded-md shadow-md">{sheets[lang]}</div>
-          </div>
+          {/* The whole A4 page, shrunk to fit the modal: no scrolling */}
+          <FitPage>{sheets[lang]}</FitPage>
         </DialogContent>
       </Dialog>
       {open && createPortal(<div className="print-root hidden print:block">{sheets[lang]}</div>, document.body)}
     </>
+  )
+}
+
+// An A4 page at screen size (210 × 297 mm at 96 dpi)
+const PAGE_W = 794
+const PAGE_H = 1123
+
+/** Shows a full A4 page scaled down so all of it fits in the space it's given. */
+function FitPage({ children }: { children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => setScale(Math.min((el.clientWidth - 32) / PAGE_W, (el.clientHeight - 32) / PAGE_H))
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  return (
+    <div ref={box} className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/50">
+      <div style={{ width: PAGE_W * scale, height: PAGE_H * scale }} className="shrink-0">
+        <div
+          style={{ width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: "top left" }}
+          className="overflow-hidden rounded-sm bg-white shadow-lg"
+        >
+          {children}
+        </div>
+      </div>
+    </div>
   )
 }
