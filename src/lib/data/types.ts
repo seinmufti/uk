@@ -1,6 +1,6 @@
-export type Party = { id: string; name: string; phone: string | null; address: string | null; notes: string | null }
+export type Party = { id: string; name: string; phone: string | null; address: string | null; notes: string | null; archived?: boolean }
 
-export type InvoiceItem = { id?: string; description: string; qty: number; total_usd: number }
+export type InvoiceItem = { id?: string; description: string; qty: number; unit_price_usd: number; total_usd: number }
 export type Invoice = {
   id: string
   number: number

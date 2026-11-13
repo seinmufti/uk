@@ -12,13 +12,15 @@ import { saveInvoice } from "@/lib/actions/invoices"
 import { today } from "@/lib/dates"
 import type { Invoice, Party } from "@/lib/data/types"
 import { docNumber, iqd, num, round2, usd, usdToIqd } from "@/lib/money"
-import { Field, NativeSelect } from "./form-bits"
+import { cn } from "@/lib/utils"
+import { AREA, Field, NativeSelect } from "./form-bits"
+import { NumberInput } from "./number-input"
 import { PartyDialog } from "./party-dialog"
 import { useAction } from "./use-action"
 
-type Row = { key: number; description: string; qty: string; total_usd: string }
+type Row = { key: number; description: string; qty: string; cost: string }
 let nextKey = 1
-const blankRow = (): Row => ({ key: nextKey++, description: "", qty: "1", total_usd: "" })
+const blankRow = (): Row => ({ key: nextKey++, description: "", qty: "1", cost: "" })
 
 export function InvoiceForm({
   customers: initialCustomers,
@@ -41,12 +43,14 @@ export function InvoiceForm({
   const [notes, setNotes] = useState(invoice?.notes ?? "")
   const [rows, setRows] = useState<Row[]>(
     invoice?.items.length
-      ? invoice.items.map((i) => ({ key: nextKey++, description: i.description, qty: String(i.qty), total_usd: String(i.total_usd) }))
+      ? invoice.items.map((i) => ({ key: nextKey++, description: i.description, qty: String(i.qty), cost: String(i.unit_price_usd) }))
       : [blankRow()],
   )
   const [newCustomer, setNewCustomer] = useState(false)
 
-  const totalUsd = round2(rows.reduce((s, r) => s + num(r.total_usd), 0))
+  // Each line: qty x cost
+  const lineTotal = (r: Row) => round2(num(r.qty) * num(r.cost))
+  const totalUsd = round2(rows.reduce((s, r) => s + lineTotal(r), 0))
   const totalIqd = usdToIqd(totalUsd, num(rate))
   const update = (key: number, patch: Partial<Row>) => setRows(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)))
 
@@ -59,7 +63,7 @@ export function InvoiceForm({
           customer_id: customerId || null,
           rate_per_100: num(rate),
           notes: notes || null,
-          items: rows.map((r) => ({ description: r.description, qty: num(r.qty), total_usd: num(r.total_usd) })),
+          items: rows.map((r) => ({ description: r.description, qty: num(r.qty), unit_price_usd: num(r.cost) })),
         }),
       {
         success: invoice ? t("common.saved") : undefined,
@@ -78,7 +82,7 @@ export function InvoiceForm({
         <span className="rounded-md bg-muted px-2 py-1 font-mono text-sm tabular-nums">#{docNumber(invoice?.number ?? number)}</span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={cn("grid gap-4 sm:grid-cols-2", AREA.party)}>
         <Field label={t("invoices.customer")}>
           <div className="flex gap-2">
             <NativeSelect value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
@@ -101,31 +105,31 @@ export function InvoiceForm({
 
       <div className="grid gap-2">
         <div className="text-sm font-medium">{t("invoices.items")}</div>
-        <div className="overflow-hidden rounded-lg border">
-          <div className="hidden grid-cols-[1fr_5rem_8rem_2rem] gap-2 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground sm:grid">
+        <div className={AREA.items}>
+          <div className={`hidden grid-cols-[1fr_4.5rem_7rem_7rem_2rem] gap-2 border-b px-3 py-2 text-xs font-medium ${AREA.itemsHead} sm:grid`}>
             <span>{t("common.description")}</span>
             <span>{t("common.qty")}</span>
-            <span>{t("common.total")} (USD)</span>
+            <span className="text-end">{t("invoices.cost")} (USD)</span>
+            <span className="text-end">{t("common.total")} (USD)</span>
             <span />
           </div>
           {rows.map((row) => (
-            <div key={row.key} className="grid grid-cols-[1fr_5rem_8rem_2rem] items-center gap-2 border-b px-3 py-2 last:border-b-0">
+            <div key={row.key} className="grid grid-cols-[1fr_4.5rem_7rem_7rem_2rem] items-center gap-2 border-b px-3 py-2 last:border-b-0">
               <Input
                 value={row.description}
                 onChange={(e) => update(row.key, { description: e.target.value })}
                 placeholder={t("common.description")}
                 aria-label={t("common.description")}
               />
-              <Input type="number" step="any" min="0" value={row.qty} onChange={(e) => update(row.key, { qty: e.target.value })} aria-label={t("common.qty")} />
-              <Input
-                type="number"
-                step="0.01"
-                value={row.total_usd}
-                onChange={(e) => update(row.key, { total_usd: e.target.value })}
+              <NumberInput  step="any" min="0" value={row.qty} onChange={(e) => update(row.key, { qty: e.target.value })} aria-label={t("common.qty")} />
+              <NumberInput
+                value={row.cost}
+                onChange={(e) => update(row.key, { cost: e.target.value })}
                 placeholder="0.00"
-                aria-label={t("common.total")}
+                aria-label={t("invoices.cost")}
                 className="text-end tabular-nums"
               />
+              <span className="pe-1 text-end text-sm font-medium tabular-nums">{usd(lineTotal(row))}</span>
               <Button
                 type="button"
                 variant="ghost"
@@ -150,8 +154,8 @@ export function InvoiceForm({
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-lg border p-4">
-        <div className="text-sm font-medium">{t("invoices.summary")}</div>
+      <div className={cn("grid gap-3", AREA.summary)}>
+        <div className={cn("text-sm font-medium", AREA.summaryTitle)}>{t("invoices.summary")}</div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">{t("invoices.subtotalUsd")}</span>
           <span className="tabular-nums">{usd(totalUsd)}</span>
@@ -164,12 +168,12 @@ export function InvoiceForm({
                 <RefreshCw /> {t("invoices.refreshRate")}
               </Button>
             )}
-            <Input type="number" step="any" min="0" value={rate} onChange={(e) => setRate(e.target.value)} required className="w-32 text-end tabular-nums" />
+            <NumberInput  step="any" min="0" value={rate} onChange={(e) => setRate(e.target.value)} required className={cn("w-32 text-end tabular-nums", AREA.rate)} />
           </div>
         </div>
         <div className="flex items-center justify-between border-t pt-3">
           <span className="font-medium">{t("invoices.totalIqd")}</span>
-          <span className="text-lg font-semibold tabular-nums">{iqd(totalIqd)}</span>
+          <span className={cn("text-lg font-semibold tabular-nums", AREA.total)}>{iqd(totalIqd)}</span>
         </div>
       </div>
 

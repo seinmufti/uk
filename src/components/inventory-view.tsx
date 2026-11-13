@@ -13,6 +13,7 @@ import { INVENTORY_KINDS, type InventoryItem, type InventoryKind } from "@/lib/d
 import { num, plain, usd } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
+import { NumberInput } from "./number-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { LinkTabs } from "./link-tabs"
 import { PageHeader } from "./page-header"
@@ -138,10 +139,10 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("common.qty")}>
-            <Input type="number" step="any" min="0" value={form.qty} onChange={(e) => set("qty", e.target.value)} />
+            <NumberInput  step="any" min="0" value={form.qty} onChange={(e) => set("qty", e.target.value)} />
           </Field>
           <Field label={t("inventory.value")}>
-            <Input type="number" step="0.01" value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} required />
+            <NumberInput  step="0.01" value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} required />
           </Field>
         </div>
         <Field label={t("common.date")}>

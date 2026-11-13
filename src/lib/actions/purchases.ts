@@ -1,5 +1,6 @@
 "use server"
 
+import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
@@ -53,7 +54,7 @@ async function syncPayable(purchaseId: string) {
   else must(await db().from("debts").insert(values))
 }
 
-export async function savePurchase(id: string | null, input: PurchaseInput): Promise<ActionResult<{ id: string; number: number }>> {
+async function savePurchaseAction(id: string | null, input: PurchaseInput): Promise<ActionResult<{ id: string; number: number }>> {
   try {
     const { items, ...values } = PurchaseSchema.parse(input)
     const total = round2(items.reduce((s, i) => s + i.qty * i.unit_cost_usd, 0))
@@ -84,7 +85,7 @@ export async function savePurchase(id: string | null, input: PurchaseInput): Pro
 }
 
 /** Adds the purchase's items to inventory stock (once). */
-export async function sendPurchaseToInventory(id: string): Promise<ActionResult> {
+async function sendPurchaseToInventoryAction(id: string): Promise<ActionResult> {
   try {
     const p = await getPurchase(id)
     if (!p) throw new Error("Purchase not found")
@@ -111,7 +112,7 @@ export async function sendPurchaseToInventory(id: string): Promise<ActionResult>
   }
 }
 
-export async function deletePurchase(id: string): Promise<ActionResult> {
+async function deletePurchaseAction(id: string): Promise<ActionResult> {
   try {
     must(await db().from("purchases").delete().eq("id", id))
     refresh()
@@ -120,3 +121,8 @@ export async function deletePurchase(id: string): Promise<ActionResult> {
     return fail(e)
   }
 }
+
+// Each action is one change in the history (undo / redo as a unit)
+export const savePurchase = tracked(savePurchaseAction)
+export const sendPurchaseToInventory = tracked(sendPurchaseToInventoryAction)
+export const deletePurchase = tracked(deletePurchaseAction)

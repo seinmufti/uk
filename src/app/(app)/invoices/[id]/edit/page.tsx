@@ -6,7 +6,7 @@ import { getRate } from "@/lib/rate"
 
 export default async function EditInvoicePage({ params }: PageProps<"/invoices/[id]/edit">) {
   const { id } = await params
-  const [invoice, customers, rate] = await Promise.all([getInvoice(id), listParties("customers"), getRate()])
+  const [invoice, customers, rate] = await Promise.all([getInvoice(id), listParties("customers", { all: true }), getRate()])
   if (!invoice) notFound()
   return <InvoiceForm invoice={invoice} customers={customers} number={invoice.number} liveRate={rate?.rate ?? null} />
 }

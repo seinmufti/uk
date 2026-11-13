@@ -23,13 +23,13 @@ export async function listInvoices(): Promise<InvoiceRow[]> {
 export async function getInvoice(id: string): Promise<Invoice | null> {
   const { data } = await db()
     .from("invoices")
-    .select("*, customer:customers(*), invoice_items(id, description, qty, total_usd, sort)")
+    .select("*, customer:customers(*), invoice_items(id, description, qty, unit_price_usd, total_usd, sort)")
     .eq("id", id)
     .maybeSingle()
   if (!data) return null
   const items: InvoiceItem[] = [...data.invoice_items]
     .sort((a: { sort: number }, b: { sort: number }) => a.sort - b.sort)
-    .map((i: Record<string, unknown>) => ({ id: i.id as string, description: i.description as string, qty: num(i.qty), total_usd: num(i.total_usd) }))
+    .map((i: Record<string, unknown>) => ({ id: i.id as string, description: i.description as string, qty: num(i.qty), unit_price_usd: i.unit_price_usd == null ? round2(num(i.total_usd) / (num(i.qty) || 1)) : num(i.unit_price_usd), total_usd: num(i.total_usd) }))
   return {
     id: data.id,
     number: data.number,

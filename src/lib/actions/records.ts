@@ -1,5 +1,6 @@
 "use server"
 
+import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
@@ -42,14 +43,14 @@ const InventorySchema = z.object({
 export type InventoryInput = z.input<typeof InventorySchema>
 const INVENTORY_PATHS = ["/inventory", "/reports"]
 
-export async function saveInventoryItem(id: string | null, input: InventoryInput) {
+async function saveInventoryItemAction(id: string | null, input: InventoryInput) {
   try {
     return await upsert("inventory_items", id, InventorySchema.parse(input), INVENTORY_PATHS)
   } catch (e) {
     return fail(message(e))
   }
 }
-export const deleteInventoryItem = async (id: string) => remove("inventory_items", id, INVENTORY_PATHS)
+const deleteInventoryItemAction = async (id: string) => remove("inventory_items", id, INVENTORY_PATHS)
 
 // ---- Debts ----
 
@@ -64,7 +65,7 @@ const DebtSchema = z.object({
 export type DebtInput = z.input<typeof DebtSchema>
 const DEBT_PATHS = ["/debts", "/reports"]
 
-export async function saveDebt(id: string | null, input: DebtInput) {
+async function saveDebtAction(id: string | null, input: DebtInput) {
   try {
     const values = DebtSchema.parse(input)
     return await upsert("debts", id, { ...values, due_date: values.due_date || null }, DEBT_PATHS)
@@ -74,7 +75,7 @@ export async function saveDebt(id: string | null, input: DebtInput) {
 }
 
 /** Adds a payment to a debt (never more than what's left). */
-export async function payDebt(id: string, amount: number): Promise<ActionResult> {
+async function payDebtAction(id: string, amount: number): Promise<ActionResult> {
   try {
     if (!(amount > 0)) throw new Error("Amount is required")
     const debt = must(await db().from("debts").select("amount_usd, paid_usd").eq("id", id).single())
@@ -86,7 +87,7 @@ export async function payDebt(id: string, amount: number): Promise<ActionResult>
     return fail(e)
   }
 }
-export const deleteDebt = async (id: string) => remove("debts", id, DEBT_PATHS)
+const deleteDebtAction = async (id: string) => remove("debts", id, DEBT_PATHS)
 
 // ---- Expenses ----
 
@@ -100,18 +101,18 @@ const ExpenseSchema = z.object({
 export type ExpenseInput = z.input<typeof ExpenseSchema>
 const EXPENSE_PATHS = ["/expenses", "/reports"]
 
-export async function saveExpense(id: string | null, input: ExpenseInput) {
+async function saveExpenseAction(id: string | null, input: ExpenseInput) {
   try {
     return await upsert("expenses", id, ExpenseSchema.parse(input), EXPENSE_PATHS)
   } catch (e) {
     return fail(message(e))
   }
 }
-export const deleteExpense = async (id: string) => remove("expenses", id, EXPENSE_PATHS)
+const deleteExpenseAction = async (id: string) => remove("expenses", id, EXPENSE_PATHS)
 
 // ---- Settings ----
 
-export async function saveZakatPercent(percent: number): Promise<ActionResult> {
+async function saveZakatPercentAction(percent: number): Promise<ActionResult> {
   try {
     const zakat_percent = z.coerce.number().min(0).max(100).parse(percent)
     must(await db().from("settings").update({ zakat_percent }).eq("id", 1))
@@ -121,3 +122,13 @@ export async function saveZakatPercent(percent: number): Promise<ActionResult> {
     return fail(message(e))
   }
 }
+
+// Each action is one change in the history (undo / redo as a unit)
+export const saveInventoryItem = tracked(saveInventoryItemAction)
+export const saveDebt = tracked(saveDebtAction)
+export const payDebt = tracked(payDebtAction)
+export const saveExpense = tracked(saveExpenseAction)
+export const saveZakatPercent = tracked(saveZakatPercentAction)
+export const deleteInventoryItem = tracked(deleteInventoryItemAction)
+export const deleteDebt = tracked(deleteDebtAction)
+export const deleteExpense = tracked(deleteExpenseAction)

@@ -4,7 +4,7 @@ import { listParties } from "@/lib/data/parties"
 import { usd } from "@/lib/money"
 
 export default async function CustomersPage() {
-  const [customers, invoices] = await Promise.all([listParties("customers"), listInvoices()])
+  const [customers, invoices] = await Promise.all([listParties("customers", { all: true }), listInvoices()])
   // Per customer: how many invoices and their total
   const stats: Record<string, { count: number; total: number }> = {}
   for (const inv of invoices) {

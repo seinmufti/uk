@@ -1,5 +1,6 @@
 "use server"
 
+import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
@@ -29,7 +30,7 @@ const refresh = () => {
 }
 
 /** Records a receipt and settles what it was for: the invoice becomes paid, or the debt goes down. */
-export async function saveReceipt(input: ReceiptInput): Promise<ActionResult<{ id: string }>> {
+async function saveReceiptAction(input: ReceiptInput): Promise<ActionResult<{ id: string }>> {
   try {
     const { party_id, ...v } = ReceiptSchema.parse(input)
     const party = must(await db().from(v.kind === "in" ? "customers" : "suppliers").select("id, name").eq("id", party_id).single())
@@ -78,7 +79,7 @@ export async function saveReceipt(input: ReceiptInput): Promise<ActionResult<{ i
 }
 
 /** Deletes a receipt and undoes what it settled. */
-export async function deleteReceipt(id: string): Promise<ActionResult> {
+async function deleteReceiptAction(id: string): Promise<ActionResult> {
   try {
     const r = must(await db().from("receipts").select("amount_usd, invoice_id, debt_id").eq("id", id).single())
     if (r.invoice_id) must(await db().from("invoices").update({ status: "unpaid" }).eq("id", r.invoice_id))
@@ -93,3 +94,7 @@ export async function deleteReceipt(id: string): Promise<ActionResult> {
     return fail(e)
   }
 }
+
+// Each action is one change in the history (undo / redo as a unit)
+export const saveReceipt = tracked(saveReceiptAction)
+export const deleteReceipt = tracked(deleteReceiptAction)

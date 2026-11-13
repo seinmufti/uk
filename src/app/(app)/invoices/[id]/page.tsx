@@ -62,6 +62,7 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
               <th className="w-8 py-2 text-start font-medium">#</th>
               <th className="py-2 text-start font-medium">{t("common.description")}</th>
               <th className="w-20 py-2 text-end font-medium">{t("common.qty")}</th>
+              <th className="w-32 py-2 text-end font-medium">{t("invoices.cost")}</th>
               <th className="w-32 py-2 text-end font-medium">{t("common.total")}</th>
             </tr>
           </thead>
@@ -71,13 +72,14 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
                 <td className="py-2 text-muted-foreground">{i + 1}</td>
                 <td className="py-2">{item.description}</td>
                 <td className="py-2 text-end tabular-nums">{plain(item.qty, 3)}</td>
+                <td className="py-2 text-end tabular-nums">{usd(item.unit_price_usd)}</td>
                 <td className="py-2 text-end tabular-nums">{usd(item.total_usd)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={3} className="py-3 text-end font-medium">
+              <td colSpan={4} className="py-3 text-end font-medium">
                 {t("invoices.grandTotal")}
               </td>
               <td className="py-3 text-end font-semibold tabular-nums">{usd(invoice.total_usd)}</td>

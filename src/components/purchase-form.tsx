@@ -13,7 +13,8 @@ import { today } from "@/lib/dates"
 import type { Party, Purchase } from "@/lib/data/types"
 import { docNumber, num, round2, usd } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { Field, NativeSelect } from "./form-bits"
+import { AREA, Field, NativeSelect } from "./form-bits"
+import { NumberInput } from "./number-input"
 import { PartyDialog } from "./party-dialog"
 import { useAction } from "./use-action"
 
@@ -70,7 +71,7 @@ export function PurchaseForm({ suppliers: initialSuppliers, purchase, number }: 
         <span className="rounded-md bg-muted px-2 py-1 font-mono text-sm tabular-nums">#{docNumber(purchase?.number ?? number)}</span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={cn("grid gap-4 sm:grid-cols-2", AREA.party)}>
         <Field label={t("purchases.supplier")}>
           <div className="flex gap-2">
             <NativeSelect value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
@@ -91,8 +92,8 @@ export function PurchaseForm({ suppliers: initialSuppliers, purchase, number }: 
         </Field>
       </div>
 
-      <div className="overflow-hidden rounded-lg border">
-        <div className="hidden grid-cols-[1fr_5rem_7rem_7rem_2rem] gap-2 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground sm:grid">
+      <div className={AREA.items}>
+        <div className={`hidden grid-cols-[1fr_5rem_7rem_7rem_2rem] gap-2 border-b px-3 py-2 text-xs font-medium ${AREA.itemsHead} sm:grid`}>
           <span>{t("common.description")}</span>
           <span>{t("common.qty")}</span>
           <span>{t("purchases.unitCost")}</span>
@@ -102,9 +103,9 @@ export function PurchaseForm({ suppliers: initialSuppliers, purchase, number }: 
         {rows.map((row) => (
           <div key={row.key} className="grid grid-cols-[1fr_4rem_6rem_2rem] items-center gap-2 border-b px-3 py-2 sm:grid-cols-[1fr_5rem_7rem_7rem_2rem]">
             <Input value={row.description} onChange={(e) => update(row.key, { description: e.target.value })} placeholder={t("common.description")} />
-            <Input type="number" step="any" min="0" value={row.qty} onChange={(e) => update(row.key, { qty: e.target.value })} aria-label={t("common.qty")} />
-            <Input
-              type="number"
+            <NumberInput  step="any" min="0" value={row.qty} onChange={(e) => update(row.key, { qty: e.target.value })} aria-label={t("common.qty")} />
+            <NumberInput
+              
               step="0.01"
               min="0"
               value={row.unit_cost_usd}
@@ -130,7 +131,7 @@ export function PurchaseForm({ suppliers: initialSuppliers, purchase, number }: 
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-lg border p-4">
+      <div className={cn("grid gap-3", AREA.payment)}>
         <div className="text-sm font-medium">{t("purchases.payment")}</div>
         <div className="grid gap-2 sm:grid-cols-2">
           {(["paid", "debt"] as const).map((value) => (
@@ -146,7 +147,7 @@ export function PurchaseForm({ suppliers: initialSuppliers, purchase, number }: 
         {payment === "debt" && (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("purchases.amountPaid")}>
-              <Input type="number" step="0.01" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} />
+              <NumberInput  step="0.01" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} />
             </Field>
             <div className="flex items-end justify-between rounded-md bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-800 dark:text-amber-400">
               <span>{t("purchases.owed")}</span>

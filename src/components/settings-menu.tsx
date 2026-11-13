@@ -1,6 +1,7 @@
 "use client"
 
-import { Languages, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react"
+import { Download, History, Languages, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react"
+import Link from "next/link"
 import { useTheme } from "next-themes"
 import { useTransition } from "react"
 import { Button } from "@/components/ui/button"
@@ -60,6 +61,13 @@ export function SettingsMenu() {
             ))}
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/history" />}>
+          <History /> {t("history.title")}
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/backup`} download />}>
+          <Download /> {t("history.backup")}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={pending} onClick={() => start(() => signOut())}>
           <LogOut /> {t("app.signOut")}

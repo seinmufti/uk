@@ -1,12 +1,15 @@
 "use client"
 
-import { Pencil, Plus, Search } from "lucide-react"
+import { Archive, ArchiveRestore, Pencil, Plus, Search } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useI18n } from "@/i18n/provider"
-import { deleteParty } from "@/lib/actions/parties"
+import { deleteParty, setPartyArchived } from "@/lib/actions/parties"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { useAction } from "./use-action"
 import type { Party } from "@/lib/data/types"
 import { DeleteButton } from "./delete-button"
 import { PageHeader } from "./page-header"
@@ -18,9 +21,13 @@ export function PartyTable({ table, rows, extra }: { table: "customers" | "suppl
   const [query, setQuery] = useState("")
   const [editing, setEditing] = useState<Party | null>(null)
   const [open, setOpen] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+  const { pending, run } = useAction()
+  const archivedCount = rows.filter((r) => r.archived).length
   const isCustomer = table === "customers"
   const q = query.trim().toLowerCase()
-  const shown = q ? rows.filter((r) => `${r.name} ${r.phone ?? ""} ${r.address ?? ""}`.toLowerCase().includes(q)) : rows
+  const visible = showArchived ? rows : rows.filter((r) => !r.archived)
+  const shown = q ? visible.filter((r) => `${r.name} ${r.phone ?? ""} ${r.address ?? ""}`.toLowerCase().includes(q)) : visible
 
   const openFor = (party: Party | null) => {
     setEditing(party)
@@ -41,6 +48,12 @@ export function PartyTable({ table, rows, extra }: { table: "customers" | "suppl
         <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("common.search")} className="ps-8" />
       </div>
+      {archivedCount > 0 && (
+        <label className="-mt-2 flex w-fit items-center gap-2 text-xs text-muted-foreground">
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          {t("common.showArchived", { count: archivedCount })}
+        </label>
+      )}
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -49,7 +62,7 @@ export function PartyTable({ table, rows, extra }: { table: "customers" | "suppl
               <TableHead>{t("common.phone")}</TableHead>
               <TableHead className="hidden md:table-cell">{t("common.address")}</TableHead>
               {extra && <TableHead className="text-end">{t("customers.invoices")}</TableHead>}
-              <TableHead className="w-20" />
+              <TableHead className="w-28" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -61,8 +74,15 @@ export function PartyTable({ table, rows, extra }: { table: "customers" | "suppl
               </TableRow>
             )}
             {shown.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell className="font-medium">{row.name}</TableCell>
+              <TableRow key={row.id} className={cn(row.archived && "opacity-60")}>
+                <TableCell className="font-medium">
+                  {row.name}
+                  {row.archived && (
+                    <Badge variant="secondary" className="ms-2">
+                      {t("common.archived")}
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell dir="ltr" className="text-start">
                   {row.phone || "—"}
                 </TableCell>
@@ -72,6 +92,16 @@ export function PartyTable({ table, rows, extra }: { table: "customers" | "suppl
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon-sm" onClick={() => openFor(row)} aria-label={t("common.edit")}>
                       <Pencil />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={pending}
+                      onClick={() => run(() => setPartyArchived(table, row.id, !row.archived), { success: t(row.archived ? "common.restored" : "common.archivedToast") })}
+                      aria-label={t(row.archived ? "common.restore" : "common.archive")}
+                      title={t(row.archived ? "common.restore" : "common.archive")}
+                    >
+                      {row.archived ? <ArchiveRestore /> : <Archive />}
                     </Button>
                     <DeleteButton action={() => deleteParty(table, row.id)} />
                   </div>

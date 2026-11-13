@@ -15,6 +15,7 @@ import { EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from "@/lib/da
 import { num, usd } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
+import { NumberInput } from "./number-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { PageHeader } from "./page-header"
 import { useAction } from "./use-action"
@@ -169,7 +170,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
             </NativeSelect>
           </Field>
           <Field label={`${t("common.amount")} (USD)`}>
-            <Input type="number" step="0.01" min="0" value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} required />
+            <NumberInput  step="0.01" min="0" value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} required />
           </Field>
         </div>
         <Field label={t("common.date")}>

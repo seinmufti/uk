@@ -2,6 +2,7 @@ import { ArrowLeftRight, BarChart3, Banknote, Building2, CalendarCheck, FileText
 import Link from "next/link"
 import { getT } from "@/i18n/server"
 import type { MessageKey } from "@/i18n/types"
+import { featureOf, isEnabled } from "@/lib/features"
 
 type Tile = { href: string; label: MessageKey; desc: MessageKey; icon: typeof FileText }
 
@@ -46,14 +47,16 @@ export default async function HomePage() {
   const t = await getT()
   return (
     <div className="mx-auto grid max-w-6xl gap-6 p-4 sm:grid-cols-2 md:p-8 lg:grid-cols-4">
-      {GROUPS.map((g) => (
-        <section key={g.title} className="grid content-start gap-2">
+      {GROUPS.map((g) => ({ ...g, tiles: g.tiles.filter((tile) => { const f = featureOf(tile.href.split("?")[0]); return !f || isEnabled(f) }) }))
+        .filter((g) => g.tiles.length > 0)
+        .map((g) => (
+        <section key={g.title} className="grid min-w-0 content-start gap-2">
           <h2 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{t(g.title)}</h2>
           {g.tiles.map(({ href, label, desc, icon: Icon }) => (
             <Link
               key={href}
               href={href}
-              className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-foreground/20 hover:bg-muted/50"
+              className="group flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-foreground/20 hover:bg-muted/50"
             >
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground group-hover:bg-background">
                 <Icon className="size-4" />

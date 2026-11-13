@@ -13,7 +13,8 @@ import { today } from "@/lib/dates"
 import { RECEIPT_METHODS, type OpenItem, type Party, type ReceiptKind, type ReceiptMethod } from "@/lib/data/types"
 import { iqd, num, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { Field, NativeSelect } from "./form-bits"
+import { AREA, Field, NativeSelect } from "./form-bits"
+import { NumberInput } from "./number-input"
 import { PartyDialog } from "./party-dialog"
 import { useAction } from "./use-action"
 
@@ -125,8 +126,8 @@ export function ReceiptForm({
         })}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={t(kind === "in" ? "receipts.from" : "receipts.to")}>
+      <div className={cn("grid gap-4 sm:grid-cols-2", AREA.party)}>
+        <Field label={t(kind === "in" ? "receipts.customer" : "receipts.supplier")}>
           <div className="flex gap-2">
             <NativeSelect value={partyId} onChange={(e) => pickParty(e.target.value)} required>
               <option value={NONE}>{t("receipts.choose")}</option>
@@ -158,10 +159,10 @@ export function ReceiptForm({
         {party && items.length === 0 && <p className="text-xs text-muted-foreground">{t("receipts.nothingOwed")}</p>}
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={cn("grid gap-4 sm:grid-cols-2", AREA.payment)}>
         <Field label={t("receipts.amount")}>
-          <Input
-            type="number"
+          <NumberInput
+            
             step="0.01"
             min="0.01"
             max={chosen ? chosen.remaining : undefined}
@@ -184,7 +185,7 @@ export function ReceiptForm({
         </Field>
       </div>
 
-      <div className="grid gap-3 rounded-lg border p-4">
+      <div className={cn("grid gap-3", AREA.summary)}>
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <span className="text-muted-foreground">{t("receipts.exchangeRate")}</span>
           <div className="flex items-center gap-2">
@@ -193,12 +194,12 @@ export function ReceiptForm({
                 <RefreshCw /> {t("invoices.refreshRate")}
               </Button>
             )}
-            <Input type="number" step="any" min="0" value={rate} onChange={(e) => setRate(e.target.value)} required className="w-32 text-end tabular-nums" />
+            <NumberInput  step="any" min="0" value={rate} onChange={(e) => setRate(e.target.value)} required className={cn("w-32 text-end tabular-nums", AREA.rate)} />
           </div>
         </div>
         <div className="flex items-center justify-between border-t pt-3">
           <span className="font-medium">{t("receipts.amountIqd")}</span>
-          <span className="text-lg font-semibold tabular-nums">{iqd(usdToIqd(num(amount), num(rate)))}</span>
+          <span className={cn("text-lg font-semibold tabular-nums", AREA.total)}>{iqd(usdToIqd(num(amount), num(rate)))}</span>
         </div>
       </div>
 

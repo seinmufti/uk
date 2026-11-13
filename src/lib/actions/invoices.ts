@@ -1,9 +1,11 @@
 "use server"
 
+import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
 import { nextInvoiceNumber } from "@/lib/data/invoices"
+import { round2 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
 const InvoiceSchema = z.object({
@@ -12,8 +14,9 @@ const InvoiceSchema = z.object({
   rate_per_100: z.coerce.number().positive("Exchange rate is required"),
   notes: z.string().trim().nullable().optional(),
   items: z
-    .array(z.object({ description: z.string().trim(), qty: z.coerce.number().min(0), total_usd: z.coerce.number() }))
-    .transform((items) => items.filter((i) => i.description))
+    .array(z.object({ description: z.string().trim(), qty: z.coerce.number().min(0), unit_price_usd: z.coerce.number() }))
+    // The line total is always qty x cost
+    .transform((items) => items.filter((i) => i.description).map((i) => ({ ...i, total_usd: round2(i.qty * i.unit_price_usd) })))
     .refine((items) => items.length > 0, "Add at least one row with a description."),
 })
 export type InvoiceInput = z.input<typeof InvoiceSchema>
@@ -24,7 +27,7 @@ const refresh = () => {
   revalidatePath("/debts")
 }
 
-export async function saveInvoice(id: string | null, input: InvoiceInput): Promise<ActionResult<{ id: string; number: number }>> {
+async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promise<ActionResult<{ id: string; number: number }>> {
   try {
     const { items, ...values } = InvoiceSchema.parse(input)
     let row: { id: string; number: number }
@@ -52,7 +55,7 @@ export async function saveInvoice(id: string | null, input: InvoiceInput): Promi
   }
 }
 
-export async function setInvoiceStatus(id: string, status: "paid" | "unpaid"): Promise<ActionResult> {
+async function setInvoiceStatusAction(id: string, status: "paid" | "unpaid"): Promise<ActionResult> {
   try {
     must(await db().from("invoices").update({ status }).eq("id", id))
     refresh()
@@ -62,7 +65,7 @@ export async function setInvoiceStatus(id: string, status: "paid" | "unpaid"): P
   }
 }
 
-export async function deleteInvoice(id: string): Promise<ActionResult> {
+async function deleteInvoiceAction(id: string): Promise<ActionResult> {
   try {
     must(await db().from("invoices").delete().eq("id", id))
     refresh()
@@ -71,3 +74,8 @@ export async function deleteInvoice(id: string): Promise<ActionResult> {
     return fail(e)
   }
 }
+
+// Each action is one change in the history (undo / redo as a unit)
+export const saveInvoice = tracked(saveInvoiceAction)
+export const setInvoiceStatus = tracked(setInvoiceStatusAction)
+export const deleteInvoice = tracked(deleteInvoiceAction)

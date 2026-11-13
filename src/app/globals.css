@@ -157,3 +157,12 @@
     overflow: visible !important;
   }
 }
+
+/* Native dropdown lists: follow the theme (otherwise light text on a light list in dark mode) */
+.dark {
+  color-scheme: dark;
+}
+select option {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}

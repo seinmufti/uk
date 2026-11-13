@@ -30,6 +30,7 @@ import { num, plain, round2, usd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
+import { NumberInput } from "./number-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { useAction } from "./use-action"
 
@@ -93,10 +94,10 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
           <Input value={form.position} onChange={(e) => set("position", e.target.value)} />
         </Field>
         <Field label={t("common.phone")}>
-          <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} dir="ltr" />
+          <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} dir="ltr" type="tel" placeholder="+964" />
         </Field>
         <Field label={t("hr.salary")}>
-          <Input type="number" step="0.01" min="0" value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} required />
+          <NumberInput  step="0.01" min="0" value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} required />
         </Field>
         <Field label={t("hr.startDate")}>
           <Input type="date" value={form.start_date} onChange={(e) => set("start_date", e.target.value)} required />
@@ -344,7 +345,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
             <Input type="date" value={absence.form.date} onChange={(e) => absence.set("date", e.target.value)} required />
           </Field>
           <Field label={t("hr.days")}>
-            <Input type="number" step="0.5" min="0.5" value={absence.form.days} onChange={(e) => absence.set("days", e.target.value)} required />
+            <NumberInput  step="0.5" min="0.5" value={absence.form.days} onChange={(e) => absence.set("days", e.target.value)} required />
           </Field>
         </div>
         <Field label={t("common.notes")}>
@@ -371,10 +372,10 @@ function PayrollLine({ row }: { row: PayrollRow }) {
       <TableCell className="font-medium">{row.employee_name}</TableCell>
       <TableCell className="text-end tabular-nums">{usd(row.base_usd)}</TableCell>
       <TableCell className="text-end">
-        <Input type="number" step="0.01" min="0" value={deductions} onChange={(e) => setDeductions(e.target.value)} onBlur={save} className="ms-auto w-24 text-end" />
+        <NumberInput  step="0.01" min="0" value={deductions} onChange={(e) => setDeductions(e.target.value)} onBlur={save} className="ms-auto w-24 text-end" />
       </TableCell>
       <TableCell className="text-end">
-        <Input type="number" step="0.01" min="0" value={bonuses} onChange={(e) => setBonuses(e.target.value)} onBlur={save} className="ms-auto w-24 text-end" />
+        <NumberInput  step="0.01" min="0" value={bonuses} onChange={(e) => setBonuses(e.target.value)} onBlur={save} className="ms-auto w-24 text-end" />
       </TableCell>
       <TableCell className="text-end font-semibold tabular-nums">{usd(net)}</TableCell>
       <TableCell>

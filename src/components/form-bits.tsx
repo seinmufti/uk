@@ -24,3 +24,18 @@ export function NativeSelect({ className, ...props }: React.ComponentProps<"sele
     />
   )
 }
+
+/**
+ * Colour-coded form areas, so the parts of a document are easy to tell apart:
+ * who and when (blue), the lines (violet), money and payment (amber), totals (green).
+ */
+export const AREA = {
+  party: "rounded-xl border border-sky-500/30 bg-sky-500/[0.06] p-4",
+  items: "overflow-hidden rounded-xl border border-violet-500/30",
+  itemsHead: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  payment: "rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4",
+  summary: "rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4",
+  summaryTitle: "text-emerald-700 dark:text-emerald-300",
+  rate: "border-amber-500/50 bg-amber-500/10 dark:bg-amber-500/10",
+  total: "text-emerald-700 dark:text-emerald-300",
+}

@@ -1,5 +1,6 @@
 "use server"
 
+import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
@@ -37,7 +38,7 @@ const EmployeeSchema = z.object({
 })
 export type EmployeeInput = z.input<typeof EmployeeSchema>
 
-export async function saveEmployee(id: string | null, input: EmployeeInput) {
+async function saveEmployeeAction(id: string | null, input: EmployeeInput) {
   return attempt(async () => {
     const values = EmployeeSchema.parse(input)
     if (id) must(await db().from("employees").update(values).eq("id", id))
@@ -45,7 +46,7 @@ export async function saveEmployee(id: string | null, input: EmployeeInput) {
   })
 }
 
-export async function deleteEmployee(id: string) {
+async function deleteEmployeeAction(id: string) {
   return attempt(async () => must(await db().from("employees").delete().eq("id", id)))
 }
 
@@ -62,10 +63,10 @@ const LeaveSchema = z
   .refine((l) => l.to_date >= l.from_date, "The end date is before the start date")
 export type LeaveInput = z.input<typeof LeaveSchema>
 
-export async function addLeave(input: LeaveInput) {
+async function addLeaveAction(input: LeaveInput) {
   return attempt(async () => must(await db().from("leaves").insert(LeaveSchema.parse(input))))
 }
-export async function deleteLeave(id: string) {
+async function deleteLeaveAction(id: string) {
   return attempt(async () => must(await db().from("leaves").delete().eq("id", id)))
 }
 
@@ -77,10 +78,10 @@ const AbsenceSchema = z.object({
 })
 export type AbsenceInput = z.input<typeof AbsenceSchema>
 
-export async function addAbsence(input: AbsenceInput) {
+async function addAbsenceAction(input: AbsenceInput) {
   return attempt(async () => must(await db().from("absences").insert(AbsenceSchema.parse(input))))
 }
-export async function deleteAbsence(id: string) {
+async function deleteAbsenceAction(id: string) {
   return attempt(async () => must(await db().from("absences").delete().eq("id", id)))
 }
 
@@ -98,7 +99,7 @@ function overlapDays(from: string, to: string, start: string, end: string) {
  * Creates this month's payroll rows for active employees who don't have one yet. Deductions start at
  * salary ÷ 30 for every unpaid-leave day and missing day in the month.
  */
-export async function generatePayroll(month: string) {
+async function generatePayrollAction(month: string) {
   return attempt(async () => {
     const { from, to } = periodRange("monthly", month)
     const [employees, existing, leaves, absences] = await Promise.all([
@@ -124,7 +125,7 @@ export async function generatePayroll(month: string) {
   })
 }
 
-export async function updatePayroll(id: string, values: { deductions_usd: number; bonuses_usd: number }) {
+async function updatePayrollAction(id: string, values: { deductions_usd: number; bonuses_usd: number }) {
   return attempt(async () => {
     const v = z.object({ deductions_usd: z.coerce.number().min(0), bonuses_usd: z.coerce.number().min(0) }).parse(values)
     must(await db().from("payroll").update(v).eq("id", id))
@@ -140,7 +141,7 @@ export async function updatePayroll(id: string, values: { deductions_usd: number
 }
 
 /** Paying salary records it as an expense (category: salaries); un-paying removes that expense. */
-export async function setPayrollPaid(id: string, paid: boolean) {
+async function setPayrollPaidAction(id: string, paid: boolean) {
   return attempt(async () => {
     const row = must(await db().from("payroll").select("*, employees(name)").eq("id", id).single())
     if (paid) {
@@ -166,6 +167,18 @@ export async function setPayrollPaid(id: string, paid: boolean) {
   })
 }
 
-export async function deletePayroll(id: string) {
+async function deletePayrollAction(id: string) {
   return attempt(async () => must(await db().from("payroll").delete().eq("id", id)))
 }
+
+// Each action is one change in the history (undo / redo as a unit)
+export const saveEmployee = tracked(saveEmployeeAction)
+export const deleteEmployee = tracked(deleteEmployeeAction)
+export const addLeave = tracked(addLeaveAction)
+export const deleteLeave = tracked(deleteLeaveAction)
+export const addAbsence = tracked(addAbsenceAction)
+export const deleteAbsence = tracked(deleteAbsenceAction)
+export const generatePayroll = tracked(generatePayrollAction)
+export const updatePayroll = tracked(updatePayrollAction)
+export const setPayrollPaid = tracked(setPayrollPaidAction)
+export const deletePayroll = tracked(deletePayrollAction)
