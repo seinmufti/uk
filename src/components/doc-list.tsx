@@ -2,8 +2,8 @@
 
 import { Search } from "lucide-react"
 import { HoverLink } from "./hover-link"
-import { useSelectedLayoutSegment } from "next/navigation"
-import { useState } from "react"
+import { useRouter, useSelectedLayoutSegment } from "next/navigation"
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useI18n } from "@/i18n/provider"
@@ -25,6 +25,10 @@ const TONES = {
   muted: "",
 }
 
+type Kind = NonNullable<Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]>["kind"]
+const FULL = "full" as Kind
+const PRELOAD = 50
+
 /** The searchable list of invoices / purchases on the start side. */
 export function DocList({ items, basePath, empty }: { items: DocListItem[]; basePath: string; empty: string }) {
   const { t } = useI18n()
@@ -32,6 +36,18 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
   const selected = useSelectedLayoutSegment()
   const q = query.trim().toLowerCase()
   const shown = q ? items.filter((i) => `${i.title} ${i.subtitle} ${i.amount}`.toLowerCase().includes(q)) : items
+
+  // Load the newest documents (with their data) as soon as the list shows, so opening one is instant.
+  // Older ones still load on hover.
+  const router = useRouter()
+  const preload = items.slice(0, PRELOAD).map((i) => `${basePath}/${i.id}`).join(" ")
+  useEffect(() => {
+    if (!preload) return
+    const timer = setTimeout(() => {
+      for (const href of preload.split(" ")) router.prefetch(href, { kind: FULL })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [preload, router])
 
   return (
     <>
