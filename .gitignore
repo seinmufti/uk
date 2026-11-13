@@ -45,4 +45,3 @@ next-env.d.ts
 
 # Supabase CLI link state
 supabase/.temp
-.vercel-uk
