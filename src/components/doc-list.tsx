@@ -20,8 +20,8 @@ export type DocListItem = {
 }
 
 const TONES = {
-  good: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  warn: "bg-amber-50 text-amber-700 border-amber-200",
+  good: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900",
+  warn: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900",
   muted: "",
 }
 

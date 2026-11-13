@@ -148,7 +148,7 @@ export function PurchaseForm({ suppliers: initialSuppliers, purchase, number }: 
             <Field label={t("purchases.amountPaid")}>
               <Input type="number" step="0.01" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} />
             </Field>
-            <div className="flex items-end justify-between rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div className="flex items-end justify-between rounded-md bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-800 dark:text-amber-400">
               <span>{t("purchases.owed")}</span>
               <span className="font-semibold tabular-nums">{usd(owed)}</span>
             </div>

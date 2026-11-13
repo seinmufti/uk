@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono, Noto_Sans_Arabic } from "next/font/google"
+import { ThemeProvider } from "next-themes"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { dirFor } from "@/i18n/locales"
@@ -21,12 +22,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale()
   const dir = dirFor(locale)
   return (
-    <html lang={locale} dir={dir} className={`${geistSans.variable} ${geistMono.variable} ${notoArabic.variable} h-full antialiased`}>
+    <html lang={locale} dir={dir} suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${notoArabic.variable} h-full antialiased`}>
       <body className="min-h-full bg-background">
-        <I18nProvider locale={locale}>
-          <TooltipProvider>{children}</TooltipProvider>
-          <Toaster position="bottom-right" theme="light" dir={dir} />
-        </I18nProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <I18nProvider locale={locale}>
+            <TooltipProvider>{children}</TooltipProvider>
+            <Toaster position="bottom-right" dir={dir} />
+          </I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

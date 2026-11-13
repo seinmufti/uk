@@ -369,7 +369,7 @@ function PayrollLine({ row }: { row: PayrollRow }) {
         <div className="flex items-center justify-end gap-1">
           {row.paid_at ? (
             <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, false))} title={t("hr.unpaid")}>
-              <Undo2 /> <span className="text-emerald-700">{t("hr.paidOn", { date: formatDate(row.paid_at) })}</span>
+              <Undo2 /> <span className="text-emerald-700 dark:text-emerald-400">{t("hr.paidOn", { date: formatDate(row.paid_at) })}</span>
             </Button>
           ) : (
             <Button size="sm" variant="outline" disabled={pending || dirty} onClick={() => run(() => setPayrollPaid(row.id, true))}>

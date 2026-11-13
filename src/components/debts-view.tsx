@@ -57,7 +57,7 @@ export function DebtsView({
             <div className="text-xs text-muted-foreground">
               {t(`debts.direction.${d}`)} · {t("debts.outstanding")}
             </div>
-            <div className={d === "receivable" ? "text-lg font-semibold text-emerald-700 tabular-nums" : "text-lg font-semibold text-red-700 tabular-nums"}>
+            <div className={d === "receivable" ? "text-lg font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums" : "text-lg font-semibold text-red-700 dark:text-red-400 tabular-nums"}>
               {usd(totals[d])}
             </div>
           </Link>

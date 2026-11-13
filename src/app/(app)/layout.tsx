@@ -2,6 +2,7 @@ import { Calculator, LogOut } from "lucide-react"
 import { Suspense } from "react"
 import { MobileNav, SideNav } from "@/components/app-nav"
 import { RateBadge } from "@/components/rate-badge"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { getT } from "@/i18n/server"
 import { signOut } from "@/lib/actions/session"
@@ -32,10 +33,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 md:px-5">
           <MobileNav title={t("app.name")} />
           <span className="font-semibold md:hidden">{t("app.name")}</span>
-          <div className="ms-auto">
+          <div className="ms-auto flex items-center gap-1">
             <Suspense>
               <RateBadge />
             </Suspense>
+            <ThemeToggle />
           </div>
         </header>
         <main className="min-h-0 flex-1 overflow-auto">

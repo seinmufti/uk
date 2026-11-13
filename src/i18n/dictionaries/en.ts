@@ -5,6 +5,7 @@ const en = {
   app: {
     name: "UK Accounting",
     signOut: "Sign out",
+    toggleTheme: "Light / dark mode",
     rate: "USD rate",
     ratePer100: "IQD per $100",
     rateUnavailable: "Rate unavailable",

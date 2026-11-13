@@ -38,7 +38,7 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
             <div className="font-mono text-2xl font-semibold">{docNumber(invoice.number)}</div>
           </div>
           <div className="text-end">
-            <Badge variant="outline" className={paid ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}>
+            <Badge variant="outline" className={paid ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400" : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400"}>
               {t(paid ? "invoices.status.paid" : "invoices.status.unpaid")}
             </Badge>
             <div className="mt-1 text-sm text-muted-foreground">{formatDate(invoice.date)}</div>

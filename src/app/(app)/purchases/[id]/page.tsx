@@ -42,7 +42,7 @@ export default async function PurchasePage({ params }: PageProps<"/purchases/[id
               {p.sent_to_inventory && <Badge variant="secondary">{t("purchases.sentToInventory")}</Badge>}
               <Badge
                 variant="outline"
-                className={p.payment_status === "paid" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}
+                className={p.payment_status === "paid" ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400" : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400"}
               >
                 {t(p.payment_status === "paid" ? "purchases.payment_paid" : "purchases.payment_debt")}
               </Badge>
@@ -87,7 +87,7 @@ export default async function PurchasePage({ params }: PageProps<"/purchases/[id
             <span className="tabular-nums">{usd(p.amount_paid_usd)}</span>
           </div>
           {owed > 0 && (
-            <div className="flex justify-between rounded-md bg-amber-50 px-2 py-1 text-amber-800">
+            <div className="flex justify-between rounded-md bg-amber-50 dark:bg-amber-950/40 px-2 py-1 text-amber-800 dark:text-amber-400">
               <span>{t("purchases.owed")}</span>
               <span className="font-semibold tabular-nums">{usd(owed)}</span>
             </div>

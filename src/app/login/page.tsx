@@ -2,6 +2,7 @@ import { Calculator } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getT } from "@/i18n/server"
 import { signInDemo } from "@/lib/actions/session"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { redirect } from "next/navigation"
 import { getSession } from "@/lib/auth"
 
@@ -9,7 +10,10 @@ export default async function LoginPage() {
   if (await getSession()) redirect("/invoices")
   const t = await getT()
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-muted/40 p-4">
+    <main className="relative flex min-h-dvh items-center justify-center bg-muted/40 p-4">
+      <div className="absolute end-3 top-3">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm rounded-xl border bg-background p-6 shadow-sm">
         <div className="mb-6 flex items-center gap-2">
           <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
