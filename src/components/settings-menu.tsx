@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LOCALE_NAMES, LOCALES } from "@/i18n/locales"
+import { isLocale, LOCALE_NAMES, LOCALES, saveLocale, type Locale } from "@/i18n/locales"
 import { useI18n } from "@/i18n/provider"
 import { signOut } from "@/lib/actions/session"
 
@@ -26,7 +26,7 @@ const THEMES = [
   { value: "system", label: "settings.system", icon: Monitor },
 ] as const
 
-/** The gear in the top bar: theme, language (coming later) and sign out. */
+/** The gear in the top bar: theme, language, history, backup and sign out. */
 export function SettingsMenu() {
   const { t, locale } = useI18n()
   const { theme = "system", setTheme } = useTheme()
@@ -51,11 +51,18 @@ export function SettingsMenu() {
         <DropdownMenuGroup>
           <DropdownMenuLabel className="flex items-center gap-1.5">
             <Languages className="size-3.5" /> {t("settings.language")}
-            <span className="ms-auto text-[10px] font-normal">{t("settings.soon")}</span>
           </DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={locale}>
+          <DropdownMenuRadioGroup
+            value={locale}
+            onValueChange={(v) => {
+              if (!isLocale(String(v)) || v === locale) return
+              saveLocale(v as Locale)
+              // Reload so every page (and the ones loaded in the background) comes back in the new language
+              location.reload()
+            }}
+          >
             {LOCALES.map((l) => (
-              <DropdownMenuRadioItem key={l} value={l} disabled={l !== "en"}>
+              <DropdownMenuRadioItem key={l} value={l}>
                 {LOCALE_NAMES[l]}
               </DropdownMenuRadioItem>
             ))}

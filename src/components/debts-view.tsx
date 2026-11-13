@@ -34,7 +34,7 @@ export function DebtsView({
   unpaidInvoices: InvoiceRow[]
   totals: Record<DebtDirection, number>
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { pending, run } = useAction()
   const editor = useEditor(blank)
   const { form, set } = editor
@@ -104,8 +104,8 @@ export function DebtsView({
                       debt.notes && <div className="max-w-56 truncate text-xs text-muted-foreground">{debt.notes}</div>
                     )}
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{formatDate(debt.date)}</TableCell>
-                  <TableCell className="hidden md:table-cell">{formatDate(debt.due_date)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatDate(debt.date, locale)}</TableCell>
+                  <TableCell className="hidden md:table-cell">{formatDate(debt.due_date, locale)}</TableCell>
                   <TableCell className="text-end tabular-nums">{usd(debt.amount_usd)}</TableCell>
                   <TableCell className="hidden text-end tabular-nums sm:table-cell">{usd(debt.paid_usd)}</TableCell>
                   <TableCell className="text-end tabular-nums">

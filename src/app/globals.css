@@ -2,7 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* A printed sheet (.paper) stays light even when the app is dark */
+@custom-variant dark (&:is(.dark *):not(.paper, .paper *));
 
 @theme inline {
   --color-background: var(--background);
@@ -49,7 +50,8 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
+:root,
+.paper {
   /* Charcoal and amber: warm cream in light mode, charcoal in dark */
   --background: oklch(0.975 0.008 75);
   --foreground: oklch(0.18 0.01 60);

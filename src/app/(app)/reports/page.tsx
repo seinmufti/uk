@@ -5,7 +5,7 @@ import { LinkTabs } from "@/components/link-tabs"
 import { PageHeader } from "@/components/page-header"
 import { ZakatPercent } from "@/components/zakat-percent"
 import { buttonVariants } from "@/components/ui/button"
-import { getT } from "@/i18n/server"
+import { getLocale, getT } from "@/i18n/server"
 import { formatDate, isPeriod, PERIODS, periodLabel, periodRange, shiftPeriod, today, type Period } from "@/lib/dates"
 import { getReport } from "@/lib/data/reports"
 import { iqd, usd, usdToIqd } from "@/lib/money"
@@ -95,7 +95,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
         <section className="rounded-lg border p-4">
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="font-medium">{t("reports.balanceSheet")}</h2>
-            <span className="text-xs text-muted-foreground">{t("reports.balanceAsOf", { date: formatDate(to) })}</span>
+            <span className="text-xs text-muted-foreground">{t("reports.balanceAsOf", { date: formatDate(to, await getLocale()) })}</span>
           </div>
           <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t("reports.assets")}</div>
           <Line indent label={t("reports.cash")} value={b.cash} />

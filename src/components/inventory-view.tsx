@@ -22,7 +22,7 @@ import { useAction } from "./use-action"
 const blank = () => ({ kind: "stock" as InventoryKind, name: "", qty: "1", value_usd: "", date: today(), notes: "" })
 
 export function InventoryView({ kind, items, totals }: { kind: InventoryKind; items: InventoryItem[]; totals: Record<InventoryKind, number> }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { pending, run } = useAction()
   const editor = useEditor(blank)
   const { form, set } = editor
@@ -73,7 +73,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="text-end tabular-nums">{plain(item.qty, 3)}</TableCell>
                 <TableCell className="text-end tabular-nums">{usd(item.value_usd)}</TableCell>
-                <TableCell className="hidden sm:table-cell">{formatDate(item.date)}</TableCell>
+                <TableCell className="hidden sm:table-cell">{formatDate(item.date, locale)}</TableCell>
                 <TableCell className="hidden max-w-64 truncate text-muted-foreground md:table-cell">
                   {item.source_purchase_id ? (
                     <Link href={`/purchases/${item.source_purchase_id}`} className="underline-offset-4 hover:underline">

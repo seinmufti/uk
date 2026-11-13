@@ -42,6 +42,13 @@ const en = {
       payroll: "Monthly pay and deductions",
     },
   },
+  printPage: {
+    title: "Print / PDF",
+    language: "Invoice language",
+    print: "Print or save as PDF",
+    back: "Back",
+    hint: "In the print window, choose “Save as PDF” to get a PDF file.",
+  },
   common: {
     save: "Save",
     saving: "Saving…",

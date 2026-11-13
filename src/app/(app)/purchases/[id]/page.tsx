@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import { PurchaseActions } from "@/components/purchase-actions"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
-import { getT } from "@/i18n/server"
+import { getLocale, getT } from "@/i18n/server"
 import { formatDate } from "@/lib/dates"
 import { getPurchase } from "@/lib/data/purchases"
 import { docNumber, plain, round2, usd } from "@/lib/money"
@@ -47,7 +47,7 @@ export default async function PurchasePage({ params }: PageProps<"/purchases/[id
                 {t(p.payment_status === "paid" ? "purchases.payment_paid" : "purchases.payment_debt")}
               </Badge>
             </div>
-            <div className="text-sm text-muted-foreground">{formatDate(p.date)}</div>
+            <div className="text-sm text-muted-foreground">{formatDate(p.date, await getLocale())}</div>
           </div>
         </div>
 

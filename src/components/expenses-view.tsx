@@ -23,7 +23,7 @@ import { useAction } from "./use-action"
 const blank = () => ({ date: today(), category: "other" as ExpenseCategory, description: "", amount_usd: "", recurring: false })
 
 export function ExpensesView({ expenses, from, to, category }: { expenses: Expense[]; from: string; to: string; category: string }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const { pending, run } = useAction()
   const editor = useEditor(blank)
@@ -91,7 +91,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
             )}
             {expenses.map((e) => (
               <TableRow key={e.id}>
-                <TableCell className="whitespace-nowrap">{formatDate(e.date)}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatDate(e.date, locale)}</TableCell>
                 <TableCell>
                   <span className="font-medium">{e.description}</span>
                   {e.recurring && (

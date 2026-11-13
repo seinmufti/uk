@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Printer, Undo2 } from "lucide-react"
+import { Check, Undo2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/i18n/provider"
@@ -17,9 +17,6 @@ export function InvoiceActions({ id, status }: { id: string; status: "paid" | "u
       <Button variant="outline" disabled={pending} onClick={() => run(() => setInvoiceStatus(id, status === "paid" ? "unpaid" : "paid"))}>
         {status === "paid" ? <Undo2 /> : <Check />}
         {t(status === "paid" ? "invoices.markUnpaid" : "invoices.markPaid")}
-      </Button>
-      <Button variant="outline" onClick={() => window.print()}>
-        <Printer /> {t("common.print")}
       </Button>
       <DeleteButton action={() => deleteInvoice(id)} then={() => router.push("/invoices")} />
     </>

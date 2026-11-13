@@ -3,7 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ReceiptActions } from "@/components/receipt-actions"
 import { buttonVariants } from "@/components/ui/button"
-import { getT } from "@/i18n/server"
+import { getLocale, getT } from "@/i18n/server"
 import { formatDate } from "@/lib/dates"
 import { getReceipt, receiptNumber } from "@/lib/data/receipts"
 import { iqd, plain, usd, usdToIqd } from "@/lib/money"
@@ -40,7 +40,7 @@ export default async function ReceiptPage({ params }: PageProps<"/receipts/[id]"
             <div className="text-xs tracking-wide text-muted-foreground uppercase">{t(`receipts.docTitle.${r.kind}`)}</div>
             <div className="font-mono text-2xl font-semibold">{receiptNumber(r.kind, r.number)}</div>
           </div>
-          <div className="text-end text-sm text-muted-foreground">{formatDate(r.date)}</div>
+          <div className="text-end text-sm text-muted-foreground">{formatDate(r.date, await getLocale())}</div>
         </div>
 
         <dl className="mt-6 grid gap-2 text-sm">

@@ -31,7 +31,7 @@ const PRELOAD = 50
 
 /** The searchable list of invoices / purchases on the start side. */
 export function DocList({ items, basePath, empty }: { items: DocListItem[]; basePath: string; empty: string }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [query, setQuery] = useState("")
   const selected = useSelectedLayoutSegment()
   const q = query.trim().toLowerCase()
@@ -77,7 +77,7 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
                     {item.badge.label}
                   </Badge>
                 )}
-                {formatDate(item.date)}
+                {formatDate(item.date, locale)}
               </span>
             </div>
           </HoverLink>

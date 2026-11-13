@@ -118,7 +118,7 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
 // ---- Employees list ----
 
 export function EmployeesView({ employees }: { employees: Employee[] }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const editor = useEditor(blankEmployee)
   const payroll = employees.filter((e) => e.active).reduce((s, e) => s + e.base_salary_usd, 0)
@@ -159,7 +159,7 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
                   )}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{e.position || "—"}</TableCell>
-                <TableCell className="hidden md:table-cell">{formatDate(e.start_date)}</TableCell>
+                <TableCell className="hidden md:table-cell">{formatDate(e.start_date, locale)}</TableCell>
                 <TableCell className="text-end tabular-nums">{usd(e.base_salary_usd)}</TableCell>
                 <TableCell onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex justify-end gap-1">
@@ -199,7 +199,7 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
 const days = (from: string, to: string) => Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000) + 1
 
 export function EmployeeDetail({ employee, leaves, absences }: { employee: Employee; leaves: Leave[]; absences: Absence[] }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const { pending, run } = useAction()
   const editor = useEditor(blankEmployee)
@@ -215,7 +215,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
             {[employee.position, employee.phone].filter(Boolean).join(" · ") || "—"}
           </div>
           <div className="mt-2 text-sm">
-            {t("hr.salary")}: <span className="font-medium tabular-nums">{usd(employee.base_salary_usd)}</span> · {t("hr.startDate")}: {formatDate(employee.start_date)}
+            {t("hr.salary")}: <span className="font-medium tabular-nums">{usd(employee.base_salary_usd)}</span> · {t("hr.startDate")}: {formatDate(employee.start_date, locale)}
           </div>
           {employee.notes && <p className="mt-2 text-sm text-muted-foreground">{employee.notes}</p>}
         </div>
@@ -245,7 +245,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
               {leaves.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    {formatDate(l.from_date)} – {formatDate(l.to_date)}
+                    {formatDate(l.from_date, locale)} – {formatDate(l.to_date, locale)}
                   </TableCell>
                   <TableCell className="tabular-nums">
                     {days(l.from_date, l.to_date)} {t("hr.days").toLowerCase()}
@@ -281,7 +281,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
               )}
               {absences.map((a) => (
                 <TableRow key={a.id}>
-                  <TableCell>{formatDate(a.date)}</TableCell>
+                  <TableCell>{formatDate(a.date, locale)}</TableCell>
                   <TableCell className="tabular-nums">
                     {plain(a.days)} {t("hr.days").toLowerCase()}
                   </TableCell>
@@ -360,7 +360,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
 // ---- Payroll ----
 
 function PayrollLine({ row }: { row: PayrollRow }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { pending, run } = useAction()
   const [deductions, setDeductions] = useState(String(row.deductions_usd))
   const [bonuses, setBonuses] = useState(String(row.bonuses_usd))
@@ -383,7 +383,7 @@ function PayrollLine({ row }: { row: PayrollRow }) {
         <div className="flex items-center justify-end gap-1">
           {row.paid_at ? (
             <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, false))} title={t("hr.unpaid")}>
-              <Undo2 /> <span className="text-emerald-700 dark:text-emerald-400">{t("hr.paidOn", { date: formatDate(row.paid_at) })}</span>
+              <Undo2 /> <span className="text-emerald-700 dark:text-emerald-400">{t("hr.paidOn", { date: formatDate(row.paid_at, locale) })}</span>
             </Button>
           ) : (
             <Button size="sm" variant="outline" disabled={pending || dirty} onClick={() => run(() => setPayrollPaid(row.id, true))}>

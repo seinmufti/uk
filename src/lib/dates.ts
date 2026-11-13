@@ -9,8 +9,17 @@ export const parseISODate = (s: string) => {
   return new Date(y, (m || 1) - 1, d || 1)
 }
 
-export const formatDate = (s: string | null | undefined) =>
-  s ? parseISODate(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"
+const DATE_LOCALES = { en: "en-GB", ar: "ar-IQ", ckb: "ckb" } as const
+// Browsers have no Sorani month names, so Kurdish dates are written by hand (the months as said in Kurdistan)
+const CKB_MONTHS = ["کانوونی دووەم", "شوبات", "ئازار", "نیسان", "ئایار", "حوزەیران", "تەمموز", "ئاب", "ئەیلوول", "تشرینی یەکەم", "تشرینی دووەم", "کانوونی یەکەم"]
+
+/** "13 Nov 2026"; pass a language to write the month in it (e.g. on a printed invoice). */
+export const formatDate = (s: string | null | undefined, locale: keyof typeof DATE_LOCALES = "en") =>
+  !s
+    ? "—"
+    : locale === "ckb"
+      ? ((d) => `${d.getDate()}ی ${CKB_MONTHS[d.getMonth()]} ${d.getFullYear()}`)(parseISODate(s))
+      : parseISODate(s).toLocaleDateString(DATE_LOCALES[locale], { day: "numeric", month: "short", year: "numeric" })
 
 export const PERIODS = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const
 export type Period = (typeof PERIODS)[number]
