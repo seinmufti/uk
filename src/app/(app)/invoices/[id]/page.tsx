@@ -1,8 +1,9 @@
-import { ArrowLeft, Pencil, Printer } from "lucide-react"
+import { ArrowLeft, Pencil } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { InvoiceActions } from "@/components/invoice-actions"
-import { InvoiceDocument } from "@/components/invoice-document"
+import { InvoiceDocument, InvoicePaper } from "@/components/invoice-document"
+import { PrintDialog } from "@/components/print-dialog"
 import { buttonVariants } from "@/components/ui/button"
 import { getLocale, getT } from "@/i18n/server"
 import { getInvoice } from "@/lib/data/invoices"
@@ -24,10 +25,7 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
             <Pencil /> {t("common.edit")}
           </Link>
           <InvoiceActions id={id} status={invoice.status} />
-          {/* Opens the print / PDF page, where the language of the printout can be changed */}
-          <Link href={`/print/invoice/${id}`} prefetch className={buttonVariants({ variant: "outline" })}>
-            <Printer /> {t("common.print")}
-          </Link>
+          <PrintDialog sheets={{ en: <InvoicePaper invoice={invoice} lang="en" />, ar: <InvoicePaper invoice={invoice} lang="ar" />, ckb: <InvoicePaper invoice={invoice} lang="ckb" /> }} />
         </div>
       </div>
 

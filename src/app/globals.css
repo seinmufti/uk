@@ -170,3 +170,14 @@ select option {
   background-color: var(--popover);
   color: var(--popover-foreground);
 }
+
+/* Printing from the print modal: only the invoice sheet goes on paper */
+@media print {
+  body:has(> .print-root) > *:not(.print-root) {
+    display: none !important;
+  }
+  body:has(> .print-root) {
+    background: white;
+    padding: 0;
+  }
+}

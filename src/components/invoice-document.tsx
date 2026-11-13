@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge"
-import type { Locale } from "@/i18n/locales"
-import type { Translate } from "@/i18n/translate"
+import { dirFor, type Locale } from "@/i18n/locales"
+import { translator, type Translate } from "@/i18n/translate"
 import type { Invoice } from "@/lib/data/types"
 import { formatDate } from "@/lib/dates"
 import { docNumber, iqd, plain, usd, usdToIqd } from "@/lib/money"
@@ -115,6 +115,16 @@ function Line({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
       <span className="tabular-nums"><bdi dir="ltr">{value}</bdi></span>
+    </div>
+  )
+}
+
+/** The invoice as a white printed sheet in the given language and direction (light even in dark mode). */
+export function InvoicePaper({ invoice, lang }: { invoice: Invoice; lang: Locale }) {
+  const dir = dirFor(lang)
+  return (
+    <div lang={lang} dir={dir} className={cn("paper bg-white p-8 text-neutral-900 print:p-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")} style={{ colorScheme: "light" }}>
+      <InvoiceDocument invoice={invoice} t={translator(lang)} locale={lang} className="border-0 bg-white p-0 shadow-none md:p-0" />
     </div>
   )
 }
