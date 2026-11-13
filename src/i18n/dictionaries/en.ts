@@ -47,6 +47,9 @@ const en = {
     language: "Invoice language",
     print: "Print or save as PDF",
     back: "Back",
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    fit: "Fit to screen",
   },
   common: {
     save: "Save",

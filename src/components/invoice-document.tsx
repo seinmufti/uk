@@ -123,8 +123,11 @@ function Line({ label, value }: { label: string; value: string }) {
 export function InvoicePaper({ invoice, lang }: { invoice: Invoice; lang: Locale }) {
   const dir = dirFor(lang)
   return (
-    <div lang={lang} dir={dir} className={cn("paper bg-white p-8 text-neutral-900 print:p-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")} style={{ colorScheme: "light" }}>
-      <InvoiceDocument invoice={invoice} t={translator(lang)} locale={lang} className="border-0 bg-white p-0 shadow-none md:p-0" />
+    <div lang={lang} dir={dir} className={cn("paper bg-white p-10 text-neutral-900 print:p-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")} style={{ colorScheme: "light" }}>
+      {/* Everything a third bigger than on screen, so it reads well on paper */}
+      <div style={{ zoom: 1.35 }}>
+        <InvoiceDocument invoice={invoice} t={translator(lang)} locale={lang} className="border-0 bg-white p-0 shadow-none md:p-0" />
+      </div>
     </div>
   )
 }

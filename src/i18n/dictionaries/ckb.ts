@@ -48,6 +48,9 @@ const ckb: DeepPartial<Messages> = {
     language: "زمانی پسوولە",
     print: "چاپکردن یان پاشەکەوتکردن وەک PDF",
     back: "گەڕانەوە",
+    zoomIn: "گەورەکردن",
+    zoomOut: "بچووککردنەوە",
+    fit: "گونجاندن لەگەڵ شاشە",
   },
   common: {
     save: "پاشەکەوت",

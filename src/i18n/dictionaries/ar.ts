@@ -48,6 +48,9 @@ const ar: DeepPartial<Messages> = {
     language: "لغة الفاتورة",
     print: "طباعة أو حفظ كـ PDF",
     back: "رجوع",
+    zoomIn: "تكبير",
+    zoomOut: "تصغير",
+    fit: "ملاءمة الشاشة",
   },
   common: {
     save: "حفظ",
