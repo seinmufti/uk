@@ -122,10 +122,7 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
   const payroll = employees.filter((e) => e.active).reduce((s, e) => s + e.base_salary_usd, 0)
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-sm text-muted-foreground">
-          {t("hr.totalNet")}: <span className="font-medium text-foreground tabular-nums">{usd(payroll)}</span>
-        </div>
+      <div className="flex justify-end">
         <Button onClick={() => editor.openNew()}>
           <Plus /> {t("hr.newEmployee")}
         </Button>
@@ -173,6 +170,21 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
               </TableRow>
             ))}
           </TableBody>
+          {employees.length > 0 && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={3} className="hidden md:table-cell">
+                  {t("hr.totalNet")}
+                </TableCell>
+                <TableCell colSpan={2} className="hidden sm:table-cell md:hidden">
+                  {t("hr.totalNet")}
+                </TableCell>
+                <TableCell className="sm:hidden">{t("hr.totalNet")}</TableCell>
+                <TableCell className="text-end tabular-nums">{usd(payroll)}</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableFooter>
+          )}
         </Table>
       </div>
       <EmployeeDialog editor={editor} />

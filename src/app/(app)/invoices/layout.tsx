@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react"
 import Link from "next/link"
 import { DocList } from "@/components/doc-list"
+import { PageHeader } from "@/components/page-header"
 import { TwoPane } from "@/components/two-pane"
 import { buttonVariants } from "@/components/ui/button"
 import { getT } from "@/i18n/server"
@@ -12,12 +13,15 @@ export default async function InvoicesLayout({ children }: LayoutProps<"/invoice
   const invoices = await listInvoices()
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2 border-b px-4 py-2.5 print:hidden">
-        <h1 className="text-lg font-semibold">{t("invoices.title")}</h1>
-        <Link href="/invoices/new" className={buttonVariants()}>
-          <Plus /> {t("invoices.new")}
-        </Link>
-      </div>
+      <PageHeader
+        inset={false}
+        title={t("invoices.title")}
+        actions={
+          <Link href="/invoices/new" className={buttonVariants()}>
+            <Plus /> {t("invoices.new")}
+          </Link>
+        }
+      />
       <TwoPane
         list={
           <DocList

@@ -43,7 +43,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
   const b = report.balance
 
   return (
-    <div className="grid gap-5 p-4 md:p-6">
+    <div className="grid gap-4 p-4 md:p-6">
       <PageHeader title={t("reports.title")} />
       <div className="flex flex-wrap items-center gap-3">
         <LinkTabs active={period} tabs={PERIODS.map((p) => ({ value: p, href: href(p, anchor), label: t(`reports.period.${p}`) }))} />
