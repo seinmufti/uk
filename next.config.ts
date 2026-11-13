@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   // The root layout reads the language cookie and every page reads the database, so pages render per request.
   cacheComponents: false,
   partialPrefetching: false,
+  // Keep visited/prefetched pages in the browser for 10 min, so going back to a page is instant
+  // with no database trip. Every save/delete/undo calls revalidatePath, which clears this cache.
+  experimental: { staleTimes: { dynamic: 600, static: 600 } },
   turbopack: {
     rules: {
       "*.css": {
