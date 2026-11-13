@@ -3,6 +3,8 @@ import Link from "next/link"
 import { getT } from "@/i18n/server"
 import type { MessageKey } from "@/i18n/types"
 import { featureOf, isEnabled } from "@/lib/features"
+import { sectionColor } from "@/lib/section-colors"
+import { cn } from "@/lib/utils"
 
 type Tile = { href: string; label: MessageKey; desc: MessageKey; icon: typeof FileText }
 
@@ -51,15 +53,15 @@ export default async function HomePage() {
         .filter((g) => g.tiles.length > 0)
         .map((g) => (
         <section key={g.title} className="grid min-w-0 content-start gap-2">
-          <h2 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{t(g.title)}</h2>
+          <h2 className="px-1 text-xs font-semibold tracking-wide text-primary uppercase">{t(g.title)}</h2>
           {g.tiles.map(({ href, label, desc, icon: Icon }) => (
             <Link
               prefetch={false}
               key={href}
               href={href}
-              className="group flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-foreground/20 hover:bg-muted/50"
+              className={cn("group flex min-w-0 items-center gap-3 rounded-xl border border-s-4 bg-card p-3 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md", sectionColor(href)?.tile)}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground group-hover:bg-background">
+              <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", sectionColor(href)?.icon)}>
                 <Icon className="size-4" />
               </span>
               <span className="min-w-0">

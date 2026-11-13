@@ -47,7 +47,7 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
           <HoverLink
             key={item.id}
             href={`${basePath}/${item.id}`}
-            className={cn("block border-b px-3 py-2.5 transition-colors hover:bg-muted/60", selected === item.id && "bg-muted")}
+            className={cn("block border-b px-3 py-2.5 transition-colors hover:bg-muted/60", selected === item.id && "bg-accent shadow-[inset_3px_0_0_var(--primary)]")}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium tabular-nums">{item.title}</span>

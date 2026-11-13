@@ -34,7 +34,7 @@ export default async function ReceiptPage({ params }: PageProps<"/receipts/[id]"
         </div>
       </div>
 
-      <div className="rounded-xl border p-5 md:p-8 print:border-0 print:p-0">
+      <div className="rounded-xl border bg-card p-5 shadow-sm md:p-8 print:border-0 print:p-0">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs tracking-wide text-muted-foreground uppercase">{t(`receipts.docTitle.${r.kind}`)}</div>

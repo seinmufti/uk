@@ -11,7 +11,7 @@ export function TwoPane({ list, children }: { list: React.ReactNode; children: R
   const hasSelection = useSelectedLayoutSegment() !== null
   return (
     <div className="flex min-h-0 flex-1">
-      <div className={cn("w-full shrink-0 flex-col border-e md:flex md:w-80 lg:w-96", hasSelection ? "hidden" : "flex")}>{list}</div>
+      <div className={cn("w-full shrink-0 flex-col border-e bg-card md:flex md:w-80 lg:w-96", hasSelection ? "hidden" : "flex")}>{list}</div>
       <div className={cn("min-w-0 flex-1 overflow-auto", hasSelection ? "block" : "hidden md:block")}>{children}</div>
     </div>
   )
