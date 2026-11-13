@@ -6,7 +6,7 @@ import { TwoPane } from "@/components/two-pane"
 import { buttonVariants } from "@/components/ui/button"
 import { getT } from "@/i18n/server"
 import { listInvoices } from "@/lib/data/invoices"
-import { docNumber, usd } from "@/lib/money"
+import { docNumber, iqd, usd, usdToIqd } from "@/lib/money"
 
 export default async function InvoicesLayout({ children }: LayoutProps<"/invoices">) {
   const t = await getT()
@@ -32,7 +32,7 @@ export default async function InvoicesLayout({ children }: LayoutProps<"/invoice
               title: `#${docNumber(i.number)}`,
               subtitle: i.customer_name ?? t("invoices.noCustomer"),
               date: i.date,
-              amount: usd(i.total_usd),
+              amount: i.currency_mode === "iqd" ? iqd(usdToIqd(i.total_usd, i.rate_per_100)) : usd(i.total_usd),
               badge: i.status === "paid" ? { label: t("invoices.status.paid"), tone: "good" } : { label: t("invoices.status.unpaid"), tone: "warn" },
             }))}
           />

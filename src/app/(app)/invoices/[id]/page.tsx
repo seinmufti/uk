@@ -16,6 +16,11 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
   const invoice = await getInvoice(id)
   if (!invoice) notFound()
   const paid = invoice.status === "paid"
+  // How this invoice shows its money (chosen on the form)
+  const mode = invoice.currency_mode
+  const toIqd = (n: number) => usdToIqd(n, invoice.rate_per_100)
+  const money = (n: number) => (mode === "iqd" ? iqd(toIqd(n)) : usd(n))
+  const cur = mode === "iqd" ? "IQD" : "USD"
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
@@ -62,8 +67,12 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
               <th className="w-8 py-2 text-start font-medium">#</th>
               <th className="py-2 text-start font-medium">{t("common.description")}</th>
               <th className="w-20 py-2 text-end font-medium">{t("common.qty")}</th>
-              <th className="w-32 py-2 text-end font-medium">{t("invoices.cost")}</th>
-              <th className="w-32 py-2 text-end font-medium">{t("common.total")}</th>
+              <th className="w-32 py-2 text-end font-medium">
+                {t("invoices.cost")} ({cur})
+              </th>
+              <th className="w-32 py-2 text-end font-medium">
+                {t("common.total")} ({cur})
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -72,8 +81,8 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
                 <td className="py-2 text-muted-foreground">{i + 1}</td>
                 <td className="py-2">{item.description}</td>
                 <td className="py-2 text-end tabular-nums">{plain(item.qty, 3)}</td>
-                <td className="py-2 text-end tabular-nums">{usd(item.unit_price_usd)}</td>
-                <td className="py-2 text-end tabular-nums">{usd(item.total_usd)}</td>
+                <td className="py-2 text-end tabular-nums">{money(item.unit_price_usd)}</td>
+                <td className="py-2 text-end tabular-nums">{money(item.total_usd)}</td>
               </tr>
             ))}
           </tbody>
@@ -82,24 +91,28 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
               <td colSpan={4} className="py-3 text-end font-medium">
                 {t("invoices.grandTotal")}
               </td>
-              <td className="py-3 text-end font-semibold tabular-nums">{usd(invoice.total_usd)}</td>
+              <td className="py-3 text-end font-semibold tabular-nums">{money(invoice.total_usd)}</td>
             </tr>
           </tfoot>
         </table>
 
         <div className="ms-auto mt-4 grid max-w-sm gap-2 rounded-lg bg-muted/50 p-4 text-sm">
           <div className="font-medium">{t("invoices.summary")}</div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t("invoices.subtotalUsd")}</span>
-            <span className="tabular-nums">{usd(invoice.total_usd)}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">{t("invoices.exchangeRate")}</span>
-            <span className="tabular-nums">{plain(invoice.rate_per_100)}</span>
-          </div>
-          <div className="flex justify-between border-t pt-2 text-base">
-            <span className="font-medium">{t("invoices.totalIqd")}</span>
-            <span className="font-semibold tabular-nums">{iqd(usdToIqd(invoice.total_usd, invoice.rate_per_100))}</span>
+          {mode === "usd_iqd" && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{t("invoices.subtotalUsd")}</span>
+              <span className="tabular-nums">{usd(invoice.total_usd)}</span>
+            </div>
+          )}
+          {mode !== "usd" && (
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">{t("invoices.exchangeRate")}</span>
+              <span className="tabular-nums">{plain(invoice.rate_per_100, 0)}</span>
+            </div>
+          )}
+          <div className={cn("flex justify-between text-base", mode !== "usd" && "border-t pt-2")}>
+            <span className="font-medium">{t(mode === "usd" ? "invoices.totalUsd" : "invoices.totalIqd")}</span>
+            <span className="font-semibold tabular-nums">{mode === "usd" ? usd(invoice.total_usd) : iqd(toIqd(invoice.total_usd))}</span>
           </div>
         </div>
 

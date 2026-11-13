@@ -1,6 +1,9 @@
 export type Party = { id: string; name: string; phone: string | null; address: string | null; notes: string | null; archived?: boolean }
 
 export type InvoiceItem = { id?: string; description: string; qty: number; unit_price_usd: number; total_usd: number }
+export const CURRENCY_MODES = ["usd", "usd_iqd", "iqd"] as const
+export type CurrencyMode = (typeof CURRENCY_MODES)[number]
+
 export type Invoice = {
   id: string
   number: number
@@ -8,12 +11,13 @@ export type Invoice = {
   customer_id: string | null
   customer: Party | null
   rate_per_100: number
+  currency_mode: CurrencyMode
   status: "paid" | "unpaid"
   notes: string | null
   items: InvoiceItem[]
   total_usd: number
 }
-export type InvoiceRow = Pick<Invoice, "id" | "number" | "date" | "status" | "total_usd" | "customer_id"> & { customer_name: string | null }
+export type InvoiceRow = Pick<Invoice, "id" | "number" | "date" | "status" | "total_usd" | "customer_id" | "currency_mode" | "rate_per_100"> & { customer_name: string | null }
 
 export type PurchaseItem = { id?: string; description: string; qty: number; unit_cost_usd: number }
 export type Purchase = {

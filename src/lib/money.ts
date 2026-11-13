@@ -6,6 +6,9 @@ export const num = (value: unknown) => {
 
 /** Rounds to cents so sums don't drift (0.1 + 0.2). */
 export const round2 = (n: number) => Math.round(n * 100) / 100
+export const round6 = (n: number) => Math.round(n * 1e6) / 1e6
+/** IQD amount → USD at a rate per 100 USD. */
+export const iqdToUsd = (amountIqd: number, ratePer100: number) => (ratePer100 ? (amountIqd * 100) / ratePer100 : 0)
 
 export const usd = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n)

@@ -5,18 +5,20 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
 import { nextInvoiceNumber } from "@/lib/data/invoices"
-import { round2 } from "@/lib/money"
+import { round6 } from "@/lib/money"
+import { CURRENCY_MODES } from "@/lib/data/types"
 import { fail, type ActionResult } from "./result"
 
 const InvoiceSchema = z.object({
   date: z.string().min(1),
   customer_id: z.guid().nullable(),
   rate_per_100: z.coerce.number().positive("Exchange rate is required"),
+  currency_mode: z.enum(CURRENCY_MODES),
   notes: z.string().trim().nullable().optional(),
   items: z
     .array(z.object({ description: z.string().trim(), qty: z.coerce.number().min(0), unit_price_usd: z.coerce.number() }))
     // The line total is always qty x cost
-    .transform((items) => items.filter((i) => i.description).map((i) => ({ ...i, total_usd: round2(i.qty * i.unit_price_usd) })))
+    .transform((items) => items.filter((i) => i.description).map((i) => ({ ...i, total_usd: round6(i.qty * i.unit_price_usd) })))
     .refine((items) => items.length > 0, "Add at least one row with a description."),
 })
 export type InvoiceInput = z.input<typeof InvoiceSchema>
