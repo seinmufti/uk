@@ -8,8 +8,8 @@ const sumItems = (items: { total_usd: unknown }[]) => round6(items.reduce((s, i)
 
 export async function listInvoices(): Promise<InvoiceRow[]> {
   const rows = must(
-    await db().from("invoices").select("id, number, date, status, customer_id, currency_mode, rate_per_100, customers(name), invoice_items(total_usd)").order("number", { ascending: false }),
-  ) as unknown as { id: string; number: number; date: string; status: "paid" | "unpaid"; customer_id: string | null; currency_mode: Invoice["currency_mode"]; rate_per_100: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }[]
+    await db().from("invoices").select("id, number, date, status, customer_id, currency_mode, rate_per_100, amount_paid_usd, customers(name), invoice_items(total_usd)").order("number", { ascending: false }),
+  ) as unknown as { id: string; number: number; date: string; status: "paid" | "unpaid"; customer_id: string | null; currency_mode: Invoice["currency_mode"]; rate_per_100: string; amount_paid_usd: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }[]
   return rows.map((r) => ({
     id: r.id,
     number: r.number,
@@ -19,6 +19,7 @@ export async function listInvoices(): Promise<InvoiceRow[]> {
     customer_name: r.customers?.name ?? null,
     currency_mode: r.currency_mode,
     rate_per_100: num(r.rate_per_100),
+    amount_paid_usd: num(r.amount_paid_usd),
     total_usd: sumItems(r.invoice_items),
   }))
 }
@@ -41,6 +42,7 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
     customer: data.customer,
     rate_per_100: num(data.rate_per_100),
     currency_mode: data.currency_mode ?? "usd_iqd",
+    amount_paid_usd: num(data.amount_paid_usd),
     status: data.status,
     notes: data.notes,
     items,

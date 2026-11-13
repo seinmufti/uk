@@ -14,6 +14,7 @@ const InvoiceSchema = z.object({
   customer_id: z.guid().nullable(),
   rate_per_100: z.coerce.number().positive("Exchange rate is required"),
   currency_mode: z.enum(CURRENCY_MODES),
+  amount_paid_usd: z.coerce.number().min(0, "Amount paid can't be negative"),
   notes: z.string().trim().nullable().optional(),
   items: z
     .array(z.object({ description: z.string().trim(), qty: z.coerce.number().min(0), unit_price_usd: z.coerce.number() }))
@@ -31,7 +32,11 @@ const refresh = () => {
 
 async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promise<ActionResult<{ id: string; number: number }>> {
   try {
-    const { items, ...values } = InvoiceSchema.parse(input)
+    const { items, amount_paid_usd, ...rest } = InvoiceSchema.parse(input)
+    // Paid can't be more than the invoice; paid in full makes it "paid"
+    const total = round6(items.reduce((s, i) => s + i.total_usd, 0))
+    const paid = Math.min(round6(amount_paid_usd), total)
+    const values = { ...rest, amount_paid_usd: paid, status: paid >= total - 0.005 && total > 0 ? "paid" : "unpaid" }
     let row: { id: string; number: number }
     if (id) {
       row = must(await db().from("invoices").update(values).eq("id", id).select("id, number").single())
@@ -57,9 +62,12 @@ async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promis
   }
 }
 
+/** Mark paid = paid in full; mark unpaid = nothing paid. */
 async function setInvoiceStatusAction(id: string, status: "paid" | "unpaid"): Promise<ActionResult> {
   try {
-    must(await db().from("invoices").update({ status }).eq("id", id))
+    const items = must(await db().from("invoice_items").select("total_usd").eq("invoice_id", id))
+    const total = round6(items.reduce((s, i) => s + Number(i.total_usd), 0))
+    must(await db().from("invoices").update({ status, amount_paid_usd: status === "paid" ? total : 0 }).eq("id", id))
     refresh()
     return { ok: true }
   } catch (e) {

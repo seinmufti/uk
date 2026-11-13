@@ -28,7 +28,7 @@ function buckets(period: Period, from: string, to: string) {
 /** Everything the reports page shows for one period, plus the balance sheet as of the period's end. */
 export async function getReport(period: Period, from: string, to: string) {
   const [invoices, expenses, purchases, inventory, debts, settings, receipts] = await Promise.all([
-    db().from("invoices").select("date, status, invoice_items(total_usd)").lte("date", to),
+    db().from("invoices").select("date, status, amount_paid_usd, invoice_items(total_usd)").lte("date", to),
     db().from("expenses").select("date, category, amount_usd").lte("date", to),
     db().from("purchases").select("date, amount_paid_usd, purchase_items(qty, unit_cost_usd)").lte("date", to),
     db().from("inventory_items").select("kind, value_usd, date").lte("date", to),
@@ -38,7 +38,12 @@ export async function getReport(period: Period, from: string, to: string) {
     db().from("receipts").select("kind, amount_usd").is("invoice_id", null).is("debt_id", null).lte("date", to),
   ])
 
-  const inv = must(invoices).map((i) => ({ date: i.date as string, paid: i.status === "paid", total: i.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0) }))
+  const inv = must(invoices).map((i) => {
+    const total = i.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0)
+    // What was paid; the rest is still owed
+    const received = Math.min(total, num(i.amount_paid_usd))
+    return { date: i.date as string, paid: i.status === "paid", total, received, due: Math.max(0, total - received) }
+  })
   const exp = must(expenses).map((e) => ({ date: e.date as string, category: e.category as string, amount: num(e.amount_usd) }))
   const pur = must(purchases).map((p) => ({
     date: p.date as string,
@@ -51,10 +56,7 @@ export async function getReport(period: Period, from: string, to: string) {
   // ---- The period ----
   const periodInvoices = inv.filter((i) => inRange(i.date))
   const income = sum(periodInvoices, (i) => i.total)
-  const incomeUnpaid = sum(
-    periodInvoices.filter((i) => !i.paid),
-    (i) => i.total,
-  )
+  const incomeUnpaid = sum(periodInvoices, (i) => i.due)
   const periodExpenses = exp.filter((e) => inRange(e.date))
   const expenseTotal = sum(periodExpenses, (e) => e.amount)
   const purchaseTotal = sum(
@@ -93,8 +95,8 @@ export async function getReport(period: Period, from: string, to: string) {
   const payableDebts = allDebts.filter((d) => d.direction === "payable")
   const receivables = round2(
     sum(
-      inv.filter((i) => !i.paid),
-      (i) => i.total,
+      inv,
+      (i) => i.due,
     ) + sum(receivableDebts, (d) => Math.max(0, d.amount - d.paid)),
   )
   const payables = sum(payableDebts, (d) => Math.max(0, d.amount - d.paid))
@@ -102,8 +104,8 @@ export async function getReport(period: Period, from: string, to: string) {
   const cash = round2(
     capital +
       sum(
-        inv.filter((i) => i.paid),
-        (i) => i.total,
+        inv,
+        (i) => i.received,
       ) +
       sum(receivableDebts, (d) => d.paid) -
       sum(exp, (e) => e.amount) -

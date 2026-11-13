@@ -21,6 +21,9 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
   const toIqd = (n: number) => usdToIqd(n, invoice.rate_per_100)
   const money = (n: number) => (mode === "iqd" ? iqd(toIqd(n)) : usd(n))
   const cur = mode === "iqd" ? "IQD" : "USD"
+  const due = Math.max(0, invoice.total_usd - invoice.amount_paid_usd)
+  // Totals in the invoice's main currency (USD, or IQD in the IQD and USD → IQD modes)
+  const main = (n: number) => (mode === "usd" ? usd(n) : iqd(toIqd(n)))
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
@@ -44,7 +47,7 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
           </div>
           <div className="text-end">
             <Badge variant="outline" className={paid ? "border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400" : "border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400"}>
-              {t(paid ? "invoices.status.paid" : "invoices.status.unpaid")}
+              {t(paid ? "invoices.status.paid" : invoice.amount_paid_usd > 0 ? "invoices.partlyPaid" : "invoices.status.unpaid")}
             </Badge>
             <div className="mt-1 text-sm text-muted-foreground">{formatDate(invoice.date)}</div>
           </div>
@@ -114,6 +117,18 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
             <span className="font-medium">{t(mode === "usd" ? "invoices.totalUsd" : "invoices.totalIqd")}</span>
             <span className="font-semibold tabular-nums">{mode === "usd" ? usd(invoice.total_usd) : iqd(toIqd(invoice.total_usd))}</span>
           </div>
+          {invoice.amount_paid_usd > 0 && !paid && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{t("invoices.paidAmount")}</span>
+                <span className="tabular-nums">{main(invoice.amount_paid_usd)}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>{t("invoices.balanceDue")}</span>
+                <span className="tabular-nums text-amber-700 dark:text-amber-400">{main(due)}</span>
+              </div>
+            </>
+          )}
         </div>
 
         {invoice.notes && <p className="mt-6 text-sm whitespace-pre-wrap text-muted-foreground">{invoice.notes}</p>}

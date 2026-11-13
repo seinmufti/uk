@@ -36,12 +36,14 @@ async function saveReceiptAction(input: ReceiptInput): Promise<ActionResult<{ id
     const party = must(await db().from(v.kind === "in" ? "customers" : "suppliers").select("id, name").eq("id", party_id).single())
     const amount = round2(v.amount_usd)
 
+    let invoiceTotal = 0
     if (v.invoice_id) {
       if (v.kind !== "in") throw new Error("Only money received can pay an invoice")
-      const inv = must(await db().from("invoices").select("status, invoice_items(total_usd)").eq("id", v.invoice_id).single())
+      const inv = must(await db().from("invoices").select("status, amount_paid_usd, invoice_items(total_usd)").eq("id", v.invoice_id).single())
       if (inv.status === "paid") throw new Error("That invoice is already paid")
-      const total = round2(inv.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0))
-      if (amount !== total) throw new Error(`An invoice is paid in full: ${total.toFixed(2)} USD`)
+      invoiceTotal = inv.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0)
+      const left = round2(invoiceTotal - num(inv.amount_paid_usd))
+      if (amount !== left) throw new Error(`A receipt pays what's left on the invoice: ${left.toFixed(2)} USD`)
     }
     let debt: { amount_usd: string; paid_usd: string } | null = null
     if (v.debt_id) {
@@ -69,7 +71,7 @@ async function saveReceiptAction(input: ReceiptInput): Promise<ActionResult<{ id
       if (res.error.code !== "23505" || attempt > 3) throw new Error(res.error.message)
     }
 
-    if (v.invoice_id) must(await db().from("invoices").update({ status: "paid" }).eq("id", v.invoice_id))
+    if (v.invoice_id) must(await db().from("invoices").update({ status: "paid", amount_paid_usd: invoiceTotal }).eq("id", v.invoice_id))
     if (v.debt_id && debt) must(await db().from("debts").update({ paid_usd: round2(num(debt.paid_usd) + amount) }).eq("id", v.debt_id))
     refresh()
     return { ok: true, id }
@@ -82,7 +84,10 @@ async function saveReceiptAction(input: ReceiptInput): Promise<ActionResult<{ id
 async function deleteReceiptAction(id: string): Promise<ActionResult> {
   try {
     const r = must(await db().from("receipts").select("amount_usd, invoice_id, debt_id").eq("id", id).single())
-    if (r.invoice_id) must(await db().from("invoices").update({ status: "unpaid" }).eq("id", r.invoice_id))
+    if (r.invoice_id) {
+      const inv = await db().from("invoices").select("amount_paid_usd").eq("id", r.invoice_id).maybeSingle()
+      if (inv.data) must(await db().from("invoices").update({ status: "unpaid", amount_paid_usd: Math.max(0, num(inv.data.amount_paid_usd) - num(r.amount_usd)) }).eq("id", r.invoice_id))
+    }
     if (r.debt_id) {
       const d = await db().from("debts").select("paid_usd").eq("id", r.debt_id).maybeSingle()
       if (d.data) must(await db().from("debts").update({ paid_usd: Math.max(0, round2(num(d.data.paid_usd) - num(r.amount_usd))) }).eq("id", r.debt_id))

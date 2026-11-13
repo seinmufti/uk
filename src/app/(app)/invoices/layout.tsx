@@ -33,7 +33,7 @@ export default async function InvoicesLayout({ children }: LayoutProps<"/invoice
               subtitle: i.customer_name ?? t("invoices.noCustomer"),
               date: i.date,
               amount: i.currency_mode === "iqd" ? iqd(usdToIqd(i.total_usd, i.rate_per_100)) : usd(i.total_usd),
-              badge: i.status === "paid" ? { label: t("invoices.status.paid"), tone: "good" } : { label: t("invoices.status.unpaid"), tone: "warn" },
+              badge: i.status === "paid" ? { label: t("invoices.status.paid"), tone: "good" } : { label: t(i.amount_paid_usd > 0 ? "invoices.partlyPaid" : "invoices.status.unpaid"), tone: "warn" },
             }))}
           />
         }

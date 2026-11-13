@@ -38,15 +38,15 @@ export async function nextReceiptNumber(kind: ReceiptKind): Promise<number> {
 /** Everything still owed: unpaid invoices and receivable debts (money in), payable debts (money out). */
 export async function listOpenItems(): Promise<Record<ReceiptKind, OpenItem[]>> {
   const [invoices, debts] = await Promise.all([
-    db().from("invoices").select("id, number, customer_id, customers(name), invoice_items(total_usd)").eq("status", "unpaid").order("number"),
+    db().from("invoices").select("id, number, customer_id, amount_paid_usd, customers(name), invoice_items(total_usd)").eq("status", "unpaid").order("number"),
     db().from("debts").select("id, direction, party, customer_id, supplier_id, amount_usd, paid_usd, notes").order("date"),
   ])
-  type Inv = { id: string; number: number; customer_id: string | null; customers: { name: string } | null; invoice_items: { total_usd: string }[] }
+  type Inv = { id: string; number: number; customer_id: string | null; amount_paid_usd: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }
   const inv: OpenItem[] = (must(invoices) as unknown as Inv[]).map((i) => ({
     type: "invoice",
     id: i.id,
     label: `Invoice ${docNumber(i.number)}`,
-    remaining: round2(i.invoice_items.reduce((s, x) => s + num(x.total_usd), 0)),
+    remaining: round2(i.invoice_items.reduce((s, x) => s + num(x.total_usd), 0) - num(i.amount_paid_usd)),
     customer_id: i.customer_id,
     supplier_id: null,
     party: i.customers?.name ?? "",

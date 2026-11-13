@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, RefreshCw, Trash2, UserPlus } from "lucide-react"
+import { Check, Plus, RefreshCw, Trash2, UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -50,6 +50,15 @@ export function InvoiceForm({
       : [blankRow()],
   )
   const [newCustomer, setNewCustomer] = useState(false)
+  // Payment: paid in full (follows the total), unpaid, or part paid (an amount, in the lines' currency)
+  const [payment, setPayment] = useState<"full" | "none" | "part">(
+    !invoice || invoice.amount_paid_usd <= 0 ? "none" : invoice.status === "paid" ? "full" : "part",
+  )
+  const [paidText, setPaidText] = useState(
+    invoice && invoice.status !== "paid" && invoice.amount_paid_usd > 0
+      ? String(invoice.currency_mode === "iqd" ? Math.round(usdToIqd(invoice.amount_paid_usd, invoice.rate_per_100)) : round2(invoice.amount_paid_usd))
+      : "",
+  )
 
   // Each line: qty x cost, in the currency the lines are typed in (IQD in IQD mode, else USD)
   const lineTotal = (r: Row) => num(r.qty) * num(r.cost)
@@ -58,12 +67,15 @@ export function InvoiceForm({
   const totalIqd = inIqd ? linesTotal : usdToIqd(totalUsd, num(rate))
   const money = (n: number) => (inIqd ? iqd(n) : usd(n))
   const cur = inIqd ? "IQD" : "USD"
+  const paidLines = payment === "full" ? linesTotal : payment === "none" ? 0 : Math.min(num(paidText), linesTotal)
+  const dueLines = Math.max(0, linesTotal - paidLines)
 
   // Switching to or from IQD converts the typed costs, so the invoice keeps its value
   const changeMode = (next: CurrencyMode) => {
     const r = num(rate)
     if ((next === "iqd") !== inIqd && r) {
       setRows(rows.map((row) => (row.cost === "" ? row : { ...row, cost: String(next === "iqd" ? Math.round(usdToIqd(num(row.cost), r)) : round2(iqdToUsd(num(row.cost), r))) })))
+      if (paidText) setPaidText(String(next === "iqd" ? Math.round(usdToIqd(num(paidText), r)) : round2(iqdToUsd(num(paidText), r))))
     }
     setMode(next)
   }
@@ -78,6 +90,7 @@ export function InvoiceForm({
           customer_id: customerId || null,
           rate_per_100: num(rate),
           currency_mode: mode,
+          amount_paid_usd: payment === "full" ? totalUsd : inIqd ? round6(iqdToUsd(paidLines, num(rate))) : paidLines,
           notes: notes || null,
           items: rows.map((r) => ({ description: r.description, qty: num(r.qty), unit_price_usd: inIqd ? round6(iqdToUsd(num(r.cost), num(rate))) : num(r.cost) })),
         }),
@@ -197,6 +210,34 @@ export function InvoiceForm({
         <div className={cn("flex items-center justify-between", mode !== "usd" && "border-t pt-3")}>
           <span className="font-medium">{t(mode === "usd" ? "invoices.totalUsd" : "invoices.totalIqd")}</span>
           <span className={cn("text-lg font-semibold tabular-nums", AREA.total)}>{mode === "usd" ? usd(totalUsd) : iqd(totalIqd)}</span>
+        </div>
+      </div>
+
+      <div className={cn("grid gap-3", AREA.payment)}>
+        <div className="text-sm font-medium">{t("invoices.payment")}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant={payment === "full" ? "default" : "outline"} onClick={() => setPayment("full")}>
+            <Check /> {t("invoices.paidInFull")}
+          </Button>
+          <Button type="button" variant={payment === "none" ? "default" : "outline"} onClick={() => (setPayment("none"), setPaidText(""))}>
+            {t("invoices.status.unpaid")}
+          </Button>
+          <div className="flex items-center gap-2 sm:ms-auto">
+            <span className="text-sm text-muted-foreground">{t("invoices.paidAmount")} ({cur})</span>
+            <NumberInput
+              value={payment === "full" ? String(inIqd ? Math.round(linesTotal) : round2(linesTotal)) : paidText}
+              onChange={(e) => {
+                setPaidText(e.target.value)
+                setPayment(num(e.target.value) <= 0 ? "none" : num(e.target.value) >= linesTotal && linesTotal > 0 ? "full" : "part")
+              }}
+              placeholder="0"
+              className={cn("w-36 text-end tabular-nums", AREA.rate)}
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between border-t pt-3 text-sm">
+          <span className="text-muted-foreground">{t("invoices.balanceDue")}</span>
+          <span className={cn("font-semibold tabular-nums", dueLines > 0 ? "text-amber-700 dark:text-amber-400" : AREA.total)}>{money(dueLines)}</span>
         </div>
       </div>
 

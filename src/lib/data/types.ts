@@ -12,12 +12,14 @@ export type Invoice = {
   customer: Party | null
   rate_per_100: number
   currency_mode: CurrencyMode
+  /** Paid so far (USD); equals the total when paid in full */
+  amount_paid_usd: number
   status: "paid" | "unpaid"
   notes: string | null
   items: InvoiceItem[]
   total_usd: number
 }
-export type InvoiceRow = Pick<Invoice, "id" | "number" | "date" | "status" | "total_usd" | "customer_id" | "currency_mode" | "rate_per_100"> & { customer_name: string | null }
+export type InvoiceRow = Pick<Invoice, "id" | "number" | "date" | "status" | "total_usd" | "customer_id" | "currency_mode" | "rate_per_100" | "amount_paid_usd"> & { customer_name: string | null }
 
 export type PurchaseItem = { id?: string; description: string; qty: number; unit_cost_usd: number }
 export type Purchase = {
