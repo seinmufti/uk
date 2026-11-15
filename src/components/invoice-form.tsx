@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Plus, RefreshCw, Trash2, UserPlus } from "lucide-react"
+import { Check, FlaskConical, Plus, RefreshCw, Trash2, UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { toast } from "sonner"
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { saveInvoice } from "@/lib/actions/invoices"
 import { today } from "@/lib/dates"
+import { randomDemoInvoice } from "@/lib/demo-invoices"
 import type { CurrencyMode, Invoice, Party } from "@/lib/data/types"
 import { docNumber, iqd, iqdToUsd, num, round2, round6, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
@@ -21,6 +22,9 @@ import { useAction } from "./use-action"
 
 type Row = { key: number; description: string; qty: string; cost: string }
 let nextKey = 1
+// The demo deployment (…/demo) gets a button that fills the form with sample data
+const IS_DEMO = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").endsWith("/demo")
+
 const blankRow = (): Row => ({ key: nextKey++, description: "", qty: "1", cost: "" })
 
 export function InvoiceForm({
@@ -83,6 +87,19 @@ export function InvoiceForm({
   }
   const update = (key: number, patch: Partial<Row>) => setRows(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)))
 
+  const fillDemo = () => {
+    const r = num(rate) || liveRate || 150000
+    const d = randomDemoInvoice(customers.map((c) => c.id), r)
+    if (!num(rate)) setRate(String(r))
+    setMode(d.mode)
+    setCustomerId(d.customerId)
+    setDate(d.date)
+    setRows(d.rows.map((row) => ({ key: nextKey++, ...row })))
+    setPayment(d.payment)
+    setPaidText(d.paidText)
+    setNotes(d.notes)
+  }
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     run(
@@ -113,8 +130,14 @@ export function InvoiceForm({
         <span className="rounded-md bg-muted px-2 py-1 font-mono text-sm tabular-nums">#{docNumber(invoice?.number ?? number)}</span>
       </div>
 
-      <div className="flex justify-center">
+      <div className="relative flex justify-center">
         <CurrencyToggle value={mode} onChange={changeMode} />
+        {IS_DEMO && (
+          // Demo only: fills the form with a random sample invoice
+          <Button type="button" variant="outline" size="icon" onClick={fillDemo} title={t("invoices.sampleData")} aria-label={t("invoices.sampleData")} className="absolute end-0 top-1/2 -translate-y-1/2">
+            <FlaskConical />
+          </Button>
+        )}
       </div>
 
       <div className={cn("grid gap-4 sm:grid-cols-2", AREA.party)}>

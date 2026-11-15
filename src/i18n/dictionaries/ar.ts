@@ -184,6 +184,7 @@ const ar: DeepPartial<Messages> = {
     items: "المواد",
     addRow: "إضافة سطر",
     grandTotal: "المجموع الكلي",
+    sampleData: "تعبئة ببيانات تجريبية",
     summary: "الملخص",
     subtotalUsd: "المجموع (USD)",
     exchangeRate: "سعر الصرف (IQD لكل $100)",

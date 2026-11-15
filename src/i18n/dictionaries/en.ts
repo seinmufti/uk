@@ -183,6 +183,7 @@ const en = {
     items: "Items",
     addRow: "Add row",
     grandTotal: "Grand total",
+    sampleData: "Fill with sample data",
     summary: "Summary",
     subtotalUsd: "Total (USD)",
     exchangeRate: "Exchange rate (IQD per $100)",
