@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useTransition } from "react"
-import { documentPages } from "@/lib/actions/preload"
+import { appPages } from "@/lib/actions/preload"
 import { featureOf, isEnabled } from "@/lib/features"
 
 const SECTIONS = ["/", "/invoices", "/receipts", "/purchases", "/expenses", "/debts", "/reports", "/customers", "/suppliers", "/inventory", "/hr", "/hr/payroll", "/history"]
@@ -46,17 +46,17 @@ export function LiveData() {
       const f = featureOf(href)
       return !f || isEnabled(f)
     })
-    // Every section, plus every invoice, purchase and receipt, so opening any of them is instant.
-    // The browser loads the most recently queued pages first, so the invoices list and the newest
-    // invoices are queued last.
-    const queue = (docs: string[]) => {
-      for (const href of sections) if (href !== "/invoices") keep(href)
-      for (const href of [...docs].reverse()) keep(href)
-      if (sections.includes("/invoices")) keep("/invoices")
+    // Every page with data: sections, every invoice, purchase, receipt and employee, and the forms.
+    // The browser loads the most recently queued pages first, so everything else is queued first and
+    // the invoices last (the invoices list at the very end), which makes the invoices load first.
+    const queue = (pages: { invoices: string[]; rest: string[] }) => {
+      for (const href of [...pages.rest].reverse()) keep(href)
+      for (const href of [...sections].reverse()) if (href !== "/invoices") keep(href)
+      for (const href of [...pages.invoices].reverse()) keep(href)
     }
-    documentPages()
+    appPages()
       .then(queue)
-      .catch(() => queue([]))
+      .catch(() => queue({ invoices: sections.includes("/invoices") ? ["/invoices"] : [], rest: [] }))
   }, [keep])
 
   // On each page change: show the copy we have, then check for newer data.
