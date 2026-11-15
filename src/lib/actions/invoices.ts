@@ -15,6 +15,7 @@ const InvoiceSchema = z.object({
   rate_per_100: z.coerce.number().positive("Exchange rate is required"),
   currency_mode: z.enum(CURRENCY_MODES),
   amount_paid_usd: z.coerce.number().min(0, "Amount paid can't be negative"),
+  discount_usd: z.coerce.number().min(0, "Discount can't be negative").default(0),
   notes: z.string().trim().nullable().optional(),
   items: z
     .array(z.object({ description: z.string().trim(), qty: z.coerce.number().min(0), unit_price_usd: z.coerce.number() }))
@@ -34,9 +35,12 @@ async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promis
   try {
     const { items, amount_paid_usd, ...rest } = InvoiceSchema.parse(input)
     // Paid can't be more than the invoice; paid in full makes it "paid"
-    const total = round6(items.reduce((s, i) => s + i.total_usd, 0))
+    // The discount comes off the lines; payment and status go by what is left
+    const subtotal = round6(items.reduce((s, i) => s + i.total_usd, 0))
+    const discount = Math.min(round6(rest.discount_usd), subtotal)
+    const total = round6(subtotal - discount)
     const paid = Math.min(round6(amount_paid_usd), total)
-    const values = { ...rest, amount_paid_usd: paid, status: paid >= total - 0.005 && total > 0 ? "paid" : "unpaid" }
+    const values = { ...rest, discount_usd: discount, amount_paid_usd: paid, status: paid >= total - 0.005 && total > 0 ? "paid" : "unpaid" }
     let row: { id: string; number: number }
     if (id) {
       row = must(await db().from("invoices").update(values).eq("id", id).select("id, number").single())
@@ -66,7 +70,8 @@ async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promis
 async function setInvoiceStatusAction(id: string, status: "paid" | "unpaid"): Promise<ActionResult> {
   try {
     const items = must(await db().from("invoice_items").select("total_usd").eq("invoice_id", id))
-    const total = round6(items.reduce((s, i) => s + Number(i.total_usd), 0))
+    const inv = must(await db().from("invoices").select("discount_usd").eq("id", id).single())
+    const total = round6(Math.max(0, items.reduce((s, i) => s + Number(i.total_usd), 0) - Number(inv.discount_usd)))
     must(await db().from("invoices").update({ status, amount_paid_usd: status === "paid" ? total : 0 }).eq("id", id))
     refresh()
     return { ok: true }

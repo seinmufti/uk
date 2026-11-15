@@ -28,7 +28,7 @@ function buckets(period: Period, from: string, to: string) {
 /** Everything the reports page shows for one period, plus the balance sheet as of the period's end. */
 export async function getReport(period: Period, from: string, to: string) {
   const [invoices, expenses, purchases, inventory, debts, settings, receipts] = await Promise.all([
-    db().from("invoices").select("date, status, amount_paid_usd, invoice_items(total_usd)").lte("date", to),
+    db().from("invoices").select("date, status, amount_paid_usd, discount_usd, invoice_items(total_usd)").lte("date", to),
     db().from("expenses").select("date, category, amount_usd").lte("date", to),
     db().from("purchases").select("date, amount_paid_usd, purchase_items(qty, unit_cost_usd)").lte("date", to),
     db().from("inventory_items").select("kind, value_usd, date").lte("date", to),
@@ -39,7 +39,8 @@ export async function getReport(period: Period, from: string, to: string) {
   ])
 
   const inv = must(invoices).map((i) => {
-    const total = i.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0)
+    // After the invoice's discount
+    const total = Math.max(0, i.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0) - num(i.discount_usd))
     // What was paid; the rest is still owed
     const received = Math.min(total, num(i.amount_paid_usd))
     return { date: i.date as string, paid: i.status === "paid", total, received, due: Math.max(0, total - received) }

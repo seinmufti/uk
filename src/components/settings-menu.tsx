@@ -1,6 +1,6 @@
 "use client"
 
-import { Download, History, Languages, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react"
+import { Download, History, Languages, LogOut, Monitor, Moon, Settings, Sun, Users } from "lucide-react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { useTransition } from "react"
@@ -27,7 +27,7 @@ const THEMES = [
 ] as const
 
 /** The gear in the top bar: theme, language, history, backup and sign out. */
-export function SettingsMenu() {
+export function SettingsMenu({ admin, username }: { admin: boolean; username: string | null }) {
   const { t, locale } = useI18n()
   const { theme = "system", setTheme } = useTheme()
   const [pending, start] = useTransition()
@@ -69,6 +69,11 @@ export function SettingsMenu() {
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {admin && (
+          <DropdownMenuItem render={<Link href="/accounts" />}>
+            <Users /> {t("auth.accounts")}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem render={<Link href="/history" />}>
           <History /> {t("history.title")}
         </DropdownMenuItem>
@@ -78,6 +83,11 @@ export function SettingsMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={pending} onClick={() => start(() => signOut())}>
           <LogOut /> {t("app.signOut")}
+          {username && (
+            <span className="ms-auto max-w-24 truncate text-xs text-muted-foreground" dir="ltr">
+              {username}
+            </span>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

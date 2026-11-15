@@ -63,17 +63,24 @@ export function InvoiceForm({
       ? String(invoice.currency_mode === "iqd" ? Math.round(usdToIqd(invoice.amount_paid_usd, invoice.rate_per_100)) : round2(invoice.amount_paid_usd))
       : "",
   )
+  // Discount off the lines, typed in the lines' currency (IQD in IQD mode, else USD)
+  const [discountText, setDiscountText] = useState(
+    invoice?.discount_usd ? String(invoice.currency_mode === "iqd" ? Math.round(usdToIqd(invoice.discount_usd, invoice.rate_per_100)) : round2(invoice.discount_usd)) : "",
+  )
 
   // Each line: qty x cost, in the currency the lines are typed in (IQD in IQD mode, else USD)
   const lineTotal = (r: Row) => num(r.qty) * num(r.cost)
   const linesTotal = rows.reduce((s, r) => s + lineTotal(r), 0)
-  const totalUsd = inIqd ? round6(iqdToUsd(linesTotal, num(rate))) : round2(linesTotal)
-  const totalIqd = inIqd ? linesTotal : usdToIqd(totalUsd, num(rate))
+  const discountLines = Math.min(num(discountText), linesTotal)
+  // What the customer owes: the lines minus the discount (in the lines' currency)
+  const netLines = linesTotal - discountLines
+  const totalUsd = inIqd ? round6(iqdToUsd(netLines, num(rate))) : round2(netLines)
+  const totalIqd = inIqd ? netLines : usdToIqd(totalUsd, num(rate))
   const money = (n: number) => (inIqd ? iqd(n) : usd(n))
   const cur = inIqd ? "IQD" : "USD"
-  const paidLines = payment === "full" ? linesTotal : payment === "none" ? 0 : Math.min(num(paidText), linesTotal)
-  const dueLines = Math.max(0, linesTotal - paidLines)
-  const coversTotal = payment === "part" && linesTotal > 0 && num(paidText) >= linesTotal
+  const paidLines = payment === "full" ? netLines : payment === "none" ? 0 : Math.min(num(paidText), netLines)
+  const dueLines = Math.max(0, netLines - paidLines)
+  const coversTotal = payment === "part" && netLines > 0 && num(paidText) >= netLines
   const paidBox = useRef<HTMLDivElement>(null)
 
   // Switching to or from IQD converts the typed costs, so the invoice keeps its value
@@ -82,6 +89,7 @@ export function InvoiceForm({
     if ((next === "iqd") !== inIqd && r) {
       setRows(rows.map((row) => (row.cost === "" ? row : { ...row, cost: String(next === "iqd" ? Math.round(usdToIqd(num(row.cost), r)) : round2(iqdToUsd(num(row.cost), r))) })))
       if (paidText) setPaidText(String(next === "iqd" ? Math.round(usdToIqd(num(paidText), r)) : round2(iqdToUsd(num(paidText), r))))
+      if (discountText) setDiscountText(String(next === "iqd" ? Math.round(usdToIqd(num(discountText), r)) : round2(iqdToUsd(num(discountText), r))))
     }
     setMode(next)
   }
@@ -98,6 +106,7 @@ export function InvoiceForm({
     setPayment(d.payment)
     setPaidText(d.paidText)
     setNotes(d.notes)
+    setDiscountText(d.discountText)
   }
 
   const submit = (e: React.FormEvent) => {
@@ -109,6 +118,7 @@ export function InvoiceForm({
           customer_id: customerId || null,
           rate_per_100: num(rate),
           currency_mode: mode,
+          discount_usd: inIqd ? round6(iqdToUsd(discountLines, num(rate))) : discountLines,
           amount_paid_usd: payment === "full" ? totalUsd : inIqd ? round6(iqdToUsd(paidLines, num(rate))) : paidLines,
           notes: notes || null,
           items: rows.map((r) => ({ description: r.description, qty: num(r.qty), unit_price_usd: inIqd ? round6(iqdToUsd(num(r.cost), num(rate))) : num(r.cost) })),
@@ -214,10 +224,21 @@ export function InvoiceForm({
 
       <div className={cn("grid gap-3", AREA.summary)}>
         <div className={cn("text-sm font-medium", AREA.summaryTitle)}>{t("invoices.summary")}</div>
-        {mode === "usd_iqd" && (
+        {/* The lines added up, then the discount taken off them (both in the lines' currency) */}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">{t(inIqd ? "invoices.totalIqd" : "invoices.subtotalUsd")}</span>
+          <span className="tabular-nums">{money(linesTotal)}</span>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="text-muted-foreground">
+            {t("invoices.discount")} ({cur})
+          </span>
+          <NumberInput value={discountText} onChange={(e) => setDiscountText(e.target.value)} placeholder="0" className={cn("w-32 text-end tabular-nums", AREA.rate)} />
+        </div>
+        {discountLines > 0 && mode === "usd_iqd" && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{t("invoices.subtotalUsd")}</span>
-            <span className="tabular-nums">{usd(totalUsd)}</span>
+            <span className="text-muted-foreground">{t("invoices.afterDiscountUsd")}</span>
+            <span className="font-medium tabular-nums">{usd(totalUsd)}</span>
           </div>
         )}
         {/* USD only: no rate needed (the current one is still saved with the invoice) */}
@@ -233,7 +254,9 @@ export function InvoiceForm({
           </div>
         </div>
         <div className={cn("flex items-center justify-between", mode !== "usd" && "border-t pt-3")}>
-          <span className="font-medium">{t(mode === "usd" ? "invoices.totalUsd" : "invoices.totalIqd")}</span>
+          <span className="font-medium">
+            {t(mode === "usd" ? (discountLines > 0 ? "invoices.afterDiscountUsd" : "invoices.totalUsd") : discountLines > 0 ? "invoices.afterDiscountIqd" : "invoices.totalIqd")}
+          </span>
           <span className={cn("text-lg font-semibold tabular-nums", AREA.total)}>{mode === "usd" ? usd(totalUsd) : iqd(totalIqd)}</span>
         </div>
       </div>

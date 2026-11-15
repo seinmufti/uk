@@ -20,6 +20,7 @@ export function InvoiceDocument({ invoice, t, locale = "en", className }: { invo
   const due = Math.max(0, invoice.total_usd - invoice.amount_paid_usd)
   // Totals in the invoice's main currency (USD, or IQD in the IQD and USD → IQD modes)
   const main = (n: number) => (mode === "usd" ? usd(n) : iqd(toIqd(n)))
+  const discounted = invoice.discount_usd > 0
 
   return (
     <div className={cn("rounded-xl border bg-card p-5 shadow-sm md:p-8 print:border-0 print:p-0 print:shadow-none", className)}>
@@ -79,19 +80,27 @@ export function InvoiceDocument({ invoice, t, locale = "en", className }: { invo
             <td colSpan={4} className="py-3 text-end font-medium">
               {t("invoices.grandTotal")}
             </td>
-            <td className="py-3 text-end font-semibold tabular-nums"><span dir="ltr">{money(invoice.total_usd)}</span></td>
+            <td className="py-3 text-end font-semibold tabular-nums"><span dir="ltr">{money(invoice.subtotal_usd)}</span></td>
           </tr>
         </tfoot>
       </table>
 
       <div className="ms-auto mt-4 grid max-w-sm gap-2 rounded-lg bg-muted/50 p-4 text-sm print:border">
         <div className="font-medium">{t("invoices.summary")}</div>
-        {mode === "usd_iqd" && (
-          <Line label={t("invoices.subtotalUsd")} value={usd(invoice.total_usd)} />
+        {discounted ? (
+          <>
+            <Line label={t(mode === "iqd" ? "invoices.totalIqd" : "invoices.subtotalUsd")} value={money(invoice.subtotal_usd)} />
+            <Line label={`${t("invoices.discount")} (${cur})`} value={`− ${money(invoice.discount_usd)}`} />
+            {mode === "usd_iqd" && <Line label={t("invoices.afterDiscountUsd")} value={usd(invoice.total_usd)} />}
+          </>
+        ) : (
+          mode === "usd_iqd" && <Line label={t("invoices.subtotalUsd")} value={usd(invoice.total_usd)} />
         )}
         {mode !== "usd" && <Line label={t("invoices.exchangeRate")} value={plain(invoice.rate_per_100, 0)} />}
         <div className={cn("flex justify-between gap-4 text-base", mode !== "usd" && "border-t pt-2")}>
-          <span className="font-medium">{t(mode === "usd" ? "invoices.totalUsd" : "invoices.totalIqd")}</span>
+          <span className="font-medium">
+            {t(mode === "usd" ? (discounted ? "invoices.afterDiscountUsd" : "invoices.totalUsd") : discounted ? "invoices.afterDiscountIqd" : "invoices.totalIqd")}
+          </span>
           <span className="font-semibold tabular-nums"><bdi dir="ltr">{mode === "usd" ? usd(invoice.total_usd) : iqd(toIqd(invoice.total_usd))}</bdi></span>
         </div>
         {invoice.amount_paid_usd > 0 && !paid && (

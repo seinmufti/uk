@@ -5,11 +5,13 @@ import type { Invoice, InvoiceItem, InvoiceRow } from "./types"
 
 // Kept to 6 decimals so IQD invoices convert back to exact IQD
 const sumItems = (items: { total_usd: unknown }[]) => round6(items.reduce((s, i) => s + num(i.total_usd), 0))
+/** The invoice total: its lines minus the discount (never below zero) */
+const afterDiscount = (subtotal: number, discount: unknown) => round6(Math.max(0, subtotal - num(discount)))
 
 export async function listInvoices(): Promise<InvoiceRow[]> {
   const rows = must(
-    await db().from("invoices").select("id, number, date, status, customer_id, currency_mode, rate_per_100, amount_paid_usd, customers(name), invoice_items(total_usd)").order("number", { ascending: false }),
-  ) as unknown as { id: string; number: number; date: string; status: "paid" | "unpaid"; customer_id: string | null; currency_mode: Invoice["currency_mode"]; rate_per_100: string; amount_paid_usd: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }[]
+    await db().from("invoices").select("id, number, date, status, customer_id, currency_mode, rate_per_100, amount_paid_usd, discount_usd, customers(name), invoice_items(total_usd)").order("number", { ascending: false }),
+  ) as unknown as { id: string; number: number; date: string; status: "paid" | "unpaid"; customer_id: string | null; currency_mode: Invoice["currency_mode"]; rate_per_100: string; amount_paid_usd: string; discount_usd: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }[]
   return rows.map((r) => ({
     id: r.id,
     number: r.number,
@@ -20,7 +22,7 @@ export async function listInvoices(): Promise<InvoiceRow[]> {
     currency_mode: r.currency_mode,
     rate_per_100: num(r.rate_per_100),
     amount_paid_usd: num(r.amount_paid_usd),
-    total_usd: sumItems(r.invoice_items),
+    total_usd: afterDiscount(sumItems(r.invoice_items), r.discount_usd),
   }))
 }
 
@@ -46,7 +48,9 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
     status: data.status,
     notes: data.notes,
     items,
-    total_usd: sumItems(items),
+    subtotal_usd: sumItems(items),
+    discount_usd: num(data.discount_usd),
+    total_usd: afterDiscount(sumItems(items), data.discount_usd),
   }
 }
 

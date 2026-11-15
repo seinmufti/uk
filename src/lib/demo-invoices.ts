@@ -1,5 +1,5 @@
 // Sample invoice data for the demo's "fill with sample data" button. Each click picks at random:
-// the currency mode, customer, date, how many lines and which ones, quantities, payment and notes.
+// the currency mode, customer, date, how many lines and which ones, quantities, discount, payment and notes.
 
 import type { CurrencyMode } from "@/lib/data/types"
 import { toISODate } from "@/lib/dates"
@@ -56,6 +56,7 @@ export type DemoInvoice = {
   rows: { description: string; qty: string; cost: string }[]
   payment: "none" | "full" | "part"
   paidText: string
+  discountText: string
   notes: string
 }
 
@@ -71,8 +72,10 @@ export function randomDemoInvoice(customerIds: string[], rate: number): DemoInvo
     return { description, qty: String(qty), cost: String(cost) }
   })
   const total = rows.reduce((s, r) => s + Number(r.qty) * Number(r.cost), 0)
+  // Sometimes a discount: a round amount, up to about 10%
+  const discount = Math.random() < 0.35 ? (inIqd ? Math.round((total * between(0.02, 0.1)) / 1000) * 1000 : Math.round(total * between(0.02, 0.1))) : 0
   const payment = pick(["none", "none", "full", "part"] as const)
-  const part = total * between(0.2, 0.8)
+  const part = (total - discount) * between(0.2, 0.8)
   const date = new Date()
   date.setDate(date.getDate() - Math.floor(Math.random() * 30))
   return {
@@ -83,5 +86,6 @@ export function randomDemoInvoice(customerIds: string[], rate: number): DemoInvo
     payment,
     paidText: payment === "part" ? String(inIqd ? Math.round(part / 1000) * 1000 : Math.round(part)) : "",
     notes: pick(NOTES),
+    discountText: discount ? String(discount) : "",
   }
 }

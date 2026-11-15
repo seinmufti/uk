@@ -17,6 +17,11 @@ export type Invoice = {
   status: "paid" | "unpaid"
   notes: string | null
   items: InvoiceItem[]
+  /** The lines added up, before the discount */
+  subtotal_usd: number
+  /** Taken off the subtotal (USD) */
+  discount_usd: number
+  /** What the customer owes in all: subtotal minus discount */
   total_usd: number
 }
 export type InvoiceRow = Pick<Invoice, "id" | "number" | "date" | "status" | "total_usd" | "customer_id" | "currency_mode" | "rate_per_100" | "amount_paid_usd"> & { customer_name: string | null }

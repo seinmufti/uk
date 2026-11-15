@@ -10,7 +10,8 @@ import { getSession } from "@/lib/auth"
 import { DB_READY } from "@/lib/db"
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  if (!(await getSession())) redirect("/login")
+  const session = await getSession()
+  if (!session) redirect("/login")
   const t = await getT()
   return (
     <div className="flex h-dvh flex-col">
@@ -26,7 +27,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Suspense>
             <RateBadge />
           </Suspense>
-          <SettingsMenu />
+          <SettingsMenu admin={session.admin} username={session.userId === "demo" ? null : session.username} />
         </div>
       </header>
       <main className="min-h-0 flex-1 overflow-auto">

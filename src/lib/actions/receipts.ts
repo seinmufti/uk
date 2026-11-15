@@ -39,9 +39,9 @@ async function saveReceiptAction(input: ReceiptInput): Promise<ActionResult<{ id
     let invoiceTotal = 0
     if (v.invoice_id) {
       if (v.kind !== "in") throw new Error("Only money received can pay an invoice")
-      const inv = must(await db().from("invoices").select("status, amount_paid_usd, invoice_items(total_usd)").eq("id", v.invoice_id).single())
+      const inv = must(await db().from("invoices").select("status, amount_paid_usd, discount_usd, invoice_items(total_usd)").eq("id", v.invoice_id).single())
       if (inv.status === "paid") throw new Error("That invoice is already paid")
-      invoiceTotal = inv.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0)
+      invoiceTotal = Math.max(0, inv.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0) - num(inv.discount_usd))
       const left = round2(invoiceTotal - num(inv.amount_paid_usd))
       if (amount !== left) throw new Error(`A receipt pays what's left on the invoice: ${left.toFixed(2)} USD`)
     }
