@@ -166,7 +166,6 @@ export function ReceiptForm({
             step="0.01"
             min="0.01"
             max={chosen ? chosen.remaining : undefined}
-            readOnly={chosen?.type === "invoice"}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"

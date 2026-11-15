@@ -6,7 +6,7 @@ import { z } from "zod"
 import { db, must } from "@/lib/db"
 import { nextReceiptNumber } from "@/lib/data/receipts"
 import { RECEIPT_METHODS } from "@/lib/data/types"
-import { num, round2 } from "@/lib/money"
+import { num, round2, round6 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
 const ReceiptSchema = z.object({
@@ -37,13 +37,17 @@ async function saveReceiptAction(input: ReceiptInput): Promise<ActionResult<{ id
     const amount = round2(v.amount_usd)
 
     let invoiceTotal = 0
+    let invoicePaid = 0
     if (v.invoice_id) {
       if (v.kind !== "in") throw new Error("Only money received can pay an invoice")
       const inv = must(await db().from("invoices").select("status, amount_paid_usd, discount_usd, invoice_items(total_usd)").eq("id", v.invoice_id).single())
       if (inv.status === "paid") throw new Error("That invoice is already paid")
       invoiceTotal = Math.max(0, inv.invoice_items.reduce((s: number, x: { total_usd: string }) => s + num(x.total_usd), 0) - num(inv.discount_usd))
+      // A receipt can pay all or part of what is left; the invoice becomes paid once nothing is left
       const left = round2(invoiceTotal - num(inv.amount_paid_usd))
-      if (amount !== left) throw new Error(`A receipt pays what's left on the invoice: ${left.toFixed(2)} USD`)
+      if (amount > left + 0.005) throw new Error(`Only ${left.toFixed(2)} USD is left on that invoice`)
+      const sum = round6(num(inv.amount_paid_usd) + amount)
+      invoicePaid = sum >= invoiceTotal - 0.005 ? invoiceTotal : sum
     }
     let debt: { amount_usd: string; paid_usd: string } | null = null
     if (v.debt_id) {
@@ -71,7 +75,7 @@ async function saveReceiptAction(input: ReceiptInput): Promise<ActionResult<{ id
       if (res.error.code !== "23505" || attempt > 3) throw new Error(res.error.message)
     }
 
-    if (v.invoice_id) must(await db().from("invoices").update({ status: "paid", amount_paid_usd: invoiceTotal }).eq("id", v.invoice_id))
+    if (v.invoice_id) must(await db().from("invoices").update({ status: invoicePaid >= invoiceTotal - 0.005 ? "paid" : "unpaid", amount_paid_usd: invoicePaid }).eq("id", v.invoice_id))
     if (v.debt_id && debt) must(await db().from("debts").update({ paid_usd: round2(num(debt.paid_usd) + amount) }).eq("id", v.debt_id))
     refresh()
     return { ok: true, id }

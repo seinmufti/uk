@@ -12,7 +12,7 @@ import { useI18n } from "@/i18n/provider"
 import { deleteDebt, payDebt, saveDebt } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
 import type { Debt, DebtDirection, InvoiceRow } from "@/lib/data/types"
-import { docNumber, num, round2, usd } from "@/lib/money"
+import { docNumber, iqd, num, round2, usd, usdToIqd } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
 import { NumberInput } from "./number-input"
@@ -20,6 +20,9 @@ import { FormDialog, useEditor } from "./form-dialog"
 import { LinkTabs } from "./link-tabs"
 import { PageHeader } from "./page-header"
 import { useAction } from "./use-action"
+
+/** An invoice amount (stored in USD) in the currency the invoice is shown in */
+const money = (inv: InvoiceRow, n: number) => (inv.currency_mode === "iqd" ? iqd(usdToIqd(n, inv.rate_per_100)) : usd(n))
 
 const blank = () => ({ party: "", amount_usd: "", date: today(), due_date: "", notes: "" })
 
@@ -164,7 +167,15 @@ export function DebtsView({
                 <span>
                   <span className="font-mono">#{docNumber(inv.number)}</span> · {inv.customer_name ?? t("invoices.noCustomer")}
                 </span>
-                <span className="font-medium tabular-nums">{usd(inv.total_usd)}</span>
+                {/* What is still owed, in the invoice's own currency; the full total and what was paid underneath */}
+                <span className="text-end tabular-nums">
+                  <span className="block font-medium">{money(inv, inv.total_usd - inv.amount_paid_usd)}</span>
+                  {inv.amount_paid_usd > 0 && (
+                    <span className="block text-xs text-muted-foreground">
+                      {t("common.paid")} {money(inv, inv.amount_paid_usd)} / {money(inv, inv.total_usd)}
+                    </span>
+                  )}
+                </span>
               </Link>
             ))}
           </div>
