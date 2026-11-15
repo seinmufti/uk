@@ -52,6 +52,8 @@ export function PartyDialog({
           className="grid gap-3"
           onSubmit={(e) => {
             e.preventDefault()
+            // The dialog is portalled but React still bubbles submit to a form around it (e.g. the invoice form)
+            e.stopPropagation()
             run(() => saveParty(table, party?.id ?? null, form), {
               success: t("common.saved"),
               then: (row) => {
