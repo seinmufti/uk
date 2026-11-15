@@ -4,7 +4,7 @@ import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
-import { parseISODate, periodRange, toISODate } from "@/lib/dates"
+import { parseISODate, periodRange, today } from "@/lib/dates"
 import { num, round2 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
@@ -47,7 +47,12 @@ async function saveEmployeeAction(id: string | null, input: EmployeeInput) {
 }
 
 async function deleteEmployeeAction(id: string) {
-  return attempt(async () => must(await db().from("employees").delete().eq("id", id)))
+  return attempt(async () => {
+    // Deleting would also delete their payroll and its salary expenses, changing past reports
+    const paid = must(await db().from("payroll").select("id").eq("employee_id", id).not("paid_at", "is", null).limit(1))
+    if (paid.length) throw new Error("This employee has paid salaries on record. Mark them inactive instead of deleting.")
+    must(await db().from("employees").delete().eq("id", id))
+  })
 }
 
 // ---- Leaves & absences ----
@@ -103,23 +108,28 @@ async function generatePayrollAction(month: string) {
   return attempt(async () => {
     const { from, to } = periodRange("monthly", month)
     const [employees, existing, leaves, absences] = await Promise.all([
-      db().from("employees").select("id, base_salary_usd").eq("active", true),
+      // Only people who had started by the end of the month
+      db().from("employees").select("id, base_salary_usd, start_date").eq("active", true).lte("start_date", to),
       db().from("payroll").select("employee_id").eq("month", from),
       db().from("leaves").select("employee_id, from_date, to_date").eq("type", "unpaid").lte("from_date", to).gte("to_date", from),
-      db().from("absences").select("employee_id, days").gte("date", from).lte("date", to),
+      db().from("absences").select("employee_id, date, days").gte("date", from).lte("date", to),
     ])
     const done = new Set(must(existing).map((r) => r.employee_id))
+    const monthDays = overlapDays(from, to, from, to)
     const rows = must(employees)
       .filter((e) => !done.has(e.id))
       .map((e) => {
-        const base = num(e.base_salary_usd)
-        const leaveDays = must(leaves)
-          .filter((l) => l.employee_id === e.id)
-          .reduce((s, l) => s + overlapDays(l.from_date, l.to_date, from, to), 0)
+        // Someone who started this month is paid for the days from their start date
+        const worked = overlapDays(e.start_date ?? from, to, from, to)
+        const base = round2((num(e.base_salary_usd) * worked) / monthDays)
+        const myLeaves = must(leaves).filter((l) => l.employee_id === e.id)
+        const leaveDays = myLeaves.reduce((s, l) => s + overlapDays(l.from_date, l.to_date, from, to), 0)
+        // An absence on a day of unpaid leave is already taken off
         const missing = must(absences)
-          .filter((a) => a.employee_id === e.id)
+          .filter((a) => a.employee_id === e.id && !myLeaves.some((l) => a.date >= l.from_date && a.date <= l.to_date))
           .reduce((s, a) => s + num(a.days), 0)
-        return { month: from, employee_id: e.id, base_usd: base, deductions_usd: round2((base / 30) * (leaveDays + missing)) }
+        // Never more than the salary itself
+        return { month: from, employee_id: e.id, base_usd: base, deductions_usd: Math.min(base, round2((num(e.base_salary_usd) / 30) * (leaveDays + missing))) }
       })
     if (rows.length) must(await db().from("payroll").insert(rows))
   })
@@ -128,6 +138,8 @@ async function generatePayrollAction(month: string) {
 async function updatePayrollAction(id: string, values: { deductions_usd: number; bonuses_usd: number }) {
   return attempt(async () => {
     const v = z.object({ deductions_usd: z.coerce.number().min(0), bonuses_usd: z.coerce.number().min(0) }).parse(values)
+    const current = must(await db().from("payroll").select("base_usd").eq("id", id).single())
+    if (v.deductions_usd > num(current.base_usd) + v.bonuses_usd) throw new Error("Deductions can't be more than the salary")
     must(await db().from("payroll").update(v).eq("id", id))
     // A paid row's salary expense follows the new net amount
     const row = must(await db().from("payroll").select("base_usd, deductions_usd, bonuses_usd").eq("id", id).single())
@@ -145,7 +157,7 @@ async function setPayrollPaidAction(id: string, paid: boolean) {
   return attempt(async () => {
     const row = must(await db().from("payroll").select("*, employees(name)").eq("id", id).single())
     if (paid) {
-      const paidAt = toISODate(new Date())
+      const paidAt = today()
       must(await db().from("payroll").update({ paid_at: paidAt }).eq("id", id))
       must(await db().from("expenses").delete().eq("payroll_id", id))
       const month = parseISODate(row.month).toLocaleDateString("en-GB", { month: "long", year: "numeric" })

@@ -1,5 +1,6 @@
 import "server-only"
 import { db, must } from "@/lib/db"
+import { highestNumberEver } from "./history"
 import { docNumber, num, round2 } from "@/lib/money"
 import type { OpenItem, Receipt, ReceiptKind } from "./types"
 
@@ -32,7 +33,7 @@ export async function getReceipt(id: string): Promise<Receipt | null> {
 
 export async function nextReceiptNumber(kind: ReceiptKind): Promise<number> {
   const row = must(await db().from("receipts").select("number").eq("kind", kind).order("number", { ascending: false }).limit(1).maybeSingle())
-  return (row?.number ?? 0) + 1
+  return Math.max(row?.number ?? 0, await highestNumberEver("receipts", kind)) + 1
 }
 
 /** Everything still owed: unpaid invoices and receivable debts (money in), payable debts (money out). */
@@ -42,7 +43,7 @@ export async function listOpenItems(): Promise<Record<ReceiptKind, OpenItem[]>> 
     db().from("debts").select("id, direction, party, customer_id, supplier_id, amount_usd, paid_usd, notes").order("date"),
   ])
   type Inv = { id: string; number: number; customer_id: string | null; amount_paid_usd: string; discount_usd: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }
-  const inv: OpenItem[] = (must(invoices) as unknown as Inv[]).map((i) => ({
+  const inv: OpenItem[] = (must(invoices) as unknown as Inv[]).map((i): OpenItem => ({
     type: "invoice",
     id: i.id,
     label: `Invoice ${docNumber(i.number)}`,
@@ -50,7 +51,7 @@ export async function listOpenItems(): Promise<Record<ReceiptKind, OpenItem[]>> 
     customer_id: i.customer_id,
     supplier_id: null,
     party: i.customers?.name ?? "",
-  }))
+  })).filter((i) => i.remaining > 0)
   const open = must(debts)
     .map((d) => ({ ...d, remaining: round2(num(d.amount_usd) - num(d.paid_usd)) }))
     .filter((d) => d.remaining > 0)

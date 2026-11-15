@@ -1,5 +1,6 @@
 import "server-only"
 import { db, must } from "@/lib/db"
+import { highestNumberEver } from "./history"
 import { num, round2 } from "@/lib/money"
 import type { Purchase, PurchaseItem, PurchaseRow } from "./types"
 
@@ -42,5 +43,5 @@ export async function getPurchase(id: string): Promise<Purchase | null> {
 
 export async function nextPurchaseNumber() {
   const { data } = await db().from("purchases").select("number").order("number", { ascending: false }).limit(1).maybeSingle()
-  return (data?.number ?? 0) + 1
+  return Math.max(data?.number ?? 0, await highestNumberEver("purchases")) + 1
 }

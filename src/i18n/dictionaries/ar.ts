@@ -335,6 +335,7 @@ const ar: DeepPartial<Messages> = {
     payrollEmpty: "لا توجد رواتب لهذا الشهر بعد.",
     deductionHint: "تُحسب الاستقطاعات من الإجازات غير المدفوعة وأيام الغياب (الراتب ÷ 30 لكل يوم). يمكنك تعديلها.",
     totalNet: "إجمالي الصافي",
+    totalSalaries: "الرواتب الشهرية",
   },
   reports: {
     title: "التقارير",

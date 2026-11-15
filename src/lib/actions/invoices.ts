@@ -66,13 +66,16 @@ async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promis
   }
 }
 
-/** Mark paid = paid in full; mark unpaid = nothing paid. */
+/** Mark paid = paid in full; mark unpaid = back to only what its receipts paid. */
 async function setInvoiceStatusAction(id: string, status: "paid" | "unpaid"): Promise<ActionResult> {
   try {
     const items = must(await db().from("invoice_items").select("total_usd").eq("invoice_id", id))
     const inv = must(await db().from("invoices").select("discount_usd").eq("id", id).single())
     const total = round6(Math.max(0, items.reduce((s, i) => s + Number(i.total_usd), 0) - Number(inv.discount_usd)))
-    must(await db().from("invoices").update({ status, amount_paid_usd: status === "paid" ? total : 0 }).eq("id", id))
+    // Receipts recorded against the invoice still count as paid after it is marked unpaid
+    const receipts = must(await db().from("receipts").select("amount_usd").eq("invoice_id", id))
+    const fromReceipts = Math.min(total, round6(receipts.reduce((s, r) => s + Number(r.amount_usd), 0)))
+    must(await db().from("invoices").update({ status, amount_paid_usd: status === "paid" ? total : fromReceipts }).eq("id", id))
     refresh()
     return { ok: true }
   } catch (e) {
@@ -82,6 +85,9 @@ async function setInvoiceStatusAction(id: string, status: "paid" | "unpaid"): Pr
 
 async function deleteInvoiceAction(id: string): Promise<ActionResult> {
   try {
+    // Its receipts would be left paying nothing
+    const paid = must(await db().from("receipts").select("id").eq("invoice_id", id).limit(1))
+    if (paid.length) throw new Error("Receipts were recorded for this invoice. Delete those receipts first.")
     must(await db().from("invoices").delete().eq("id", id))
     refresh()
     return { ok: true }

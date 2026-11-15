@@ -114,6 +114,10 @@ async function sendPurchaseToInventoryAction(id: string): Promise<ActionResult> 
 
 async function deletePurchaseAction(id: string): Promise<ActionResult> {
   try {
+    // Payments made on its debt would be left paying nothing
+    const debt = must(await db().from("debts").select("id").eq("purchase_id", id))
+    const paid = debt.length ? must(await db().from("receipts").select("id").in("debt_id", debt.map((d) => d.id)).limit(1)) : []
+    if (paid.length) throw new Error("Payments were recorded for this purchase. Delete those receipts first.")
     must(await db().from("purchases").delete().eq("id", id))
     refresh()
     return { ok: true }

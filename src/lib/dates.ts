@@ -1,5 +1,5 @@
-/** Today as yyyy-mm-dd in local time. */
-export const today = () => toISODate(new Date())
+/** Today as yyyy-mm-dd in Iraq's time (servers run on UTC, three hours behind). */
+export const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Baghdad", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())
 
 export const toISODate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`

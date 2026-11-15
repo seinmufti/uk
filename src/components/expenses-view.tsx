@@ -126,7 +126,8 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
                         <Pencil />
                       </Button>
                     )}
-                    <DeleteButton action={() => deleteExpense(e.id)} />
+                    {/* A salary expense goes away by un-paying it in Payroll */}
+                    {!e.payroll_id && <DeleteButton action={() => deleteExpense(e.id)} />}
                   </div>
                 </TableCell>
               </TableRow>

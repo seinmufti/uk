@@ -108,7 +108,12 @@ async function saveExpenseAction(id: string | null, input: ExpenseInput) {
     return fail(message(e))
   }
 }
-const deleteExpenseAction = async (id: string) => remove("expenses", id, EXPENSE_PATHS)
+async function deleteExpenseAction(id: string): Promise<ActionResult> {
+  // A salary expense belongs to its payroll row: un-pay it there instead
+  const row = await db().from("expenses").select("payroll_id").eq("id", id).maybeSingle()
+  if (row.data?.payroll_id) return fail("This is a paid salary. Un-pay it in Payroll instead.")
+  return remove("expenses", id, EXPENSE_PATHS)
+}
 
 // ---- Settings ----
 

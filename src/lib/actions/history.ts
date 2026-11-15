@@ -35,11 +35,32 @@ async function apply(steps: Step[]) {
   }
 }
 
+/**
+ * Putting rows back to an old state would wipe out a later change to the same rows (e.g. undoing the
+ * first of two receipts on one invoice would forget the second). Those later changes go first.
+ */
+async function refuseIfBuiltOn(rows: HistoryRow[], direction: "undo" | "redo") {
+  if (!rows.length) return
+  const last = Math.max(...rows.map((r) => r.id))
+  const later = must(
+    await db()
+      .from("history")
+      .select("change_id, history_changes!inner(undone)")
+      .in("row_id", [...new Set(rows.map((r) => r.row_id))])
+      .gt("id", last)
+      .eq("history_changes.undone", false)
+      .limit(1),
+  )
+  if (later.length)
+    throw new Error(direction === "undo" ? "A later change touched the same records: undo that one first." : "These records were changed since: undo the later change first.")
+}
+
 async function flip(id: string, direction: "undo" | "redo"): Promise<ActionResult> {
   try {
     const change = await getChange(id)
     if (!change) throw new Error("Change not found")
     if (change.undone === (direction === "undo")) throw new Error(direction === "undo" ? "Already undone" : "Not undone")
+    await refuseIfBuiltOn(change.rows, direction)
     await apply(plan(change.rows, direction))
     must(
       await db()

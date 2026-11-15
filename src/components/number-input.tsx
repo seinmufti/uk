@@ -47,7 +47,12 @@ export function NumberInput({ value, onChange, ...props }: Props) {
       value={shown}
       onChange={(e) => {
         const el = e.target
-        const raw = el.value.replace(/[^\d.-]/g, "")
+        // Arabic-Indic (٠-٩) and Persian (۰-۹) digits and the Arabic decimal point (٫) count as 0-9 and "."
+        const latin = el.value
+          .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660))
+          .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6f0))
+          .replace(/٫/g, ".")
+        const raw = latin.replace(/[^\d.-]/g, "")
         if (!/^-?\d*\.?\d*$/.test(raw)) return
         caret.current = el.value.slice(0, el.selectionStart ?? el.value.length).replace(/,/g, "").length
         onChange?.({ target: { value: raw } })

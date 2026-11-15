@@ -334,6 +334,7 @@ const en = {
     payrollEmpty: "No payroll for this month yet.",
     deductionHint: "Deductions are filled from unpaid leave and missing days (salary ÷ 30 per day). You can change them.",
     totalNet: "Total net",
+    totalSalaries: "Monthly salaries",
   },
   reports: {
     title: "Reports",

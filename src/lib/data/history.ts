@@ -91,3 +91,14 @@ export function describe(change: Change): { title: string; more: number } {
   const title = `${VERB[main.op]} ${NOUN[main.tbl] ?? main.tbl}${label ? ` ${label}` : ""}`
   return { title, more: change.rows.length - 1 }
 }
+
+/**
+ * The highest number a table has ever handed out, deleted rows included, so a number is never used
+ * twice (deleting invoice 0007 doesn't make the next one 0007 again).
+ */
+export async function highestNumberEver(tbl: "invoices" | "purchases" | "receipts", kind?: string): Promise<number> {
+  let q = db().from("history").select("n:new_row->number").eq("tbl", tbl).eq("op", "INSERT")
+  if (kind) q = q.eq("new_row->>kind", kind)
+  const { data } = await q.order("new_row->number", { ascending: false, nullsFirst: false }).limit(1)
+  return Number((data?.[0] as { n?: unknown } | undefined)?.n ?? 0) || 0
+}

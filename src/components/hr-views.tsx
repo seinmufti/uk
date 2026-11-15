@@ -176,12 +176,12 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={3} className="hidden md:table-cell">
-                  {t("hr.totalNet")}
+                  {t("hr.totalSalaries")}
                 </TableCell>
                 <TableCell colSpan={2} className="hidden sm:table-cell md:hidden">
-                  {t("hr.totalNet")}
+                  {t("hr.totalSalaries")}
                 </TableCell>
-                <TableCell className="sm:hidden">{t("hr.totalNet")}</TableCell>
+                <TableCell className="sm:hidden">{t("hr.totalSalaries")}</TableCell>
                 <TableCell className="text-end tabular-nums">{usd(payroll)}</TableCell>
                 <TableCell />
               </TableRow>

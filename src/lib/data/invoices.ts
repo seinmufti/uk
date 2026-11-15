@@ -1,5 +1,6 @@
 import "server-only"
 import { db, must } from "@/lib/db"
+import { highestNumberEver } from "./history"
 import { num, round6 } from "@/lib/money"
 import type { Invoice, InvoiceItem, InvoiceRow } from "./types"
 
@@ -56,5 +57,5 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
 
 export async function nextInvoiceNumber() {
   const { data } = await db().from("invoices").select("number").order("number", { ascending: false }).limit(1).maybeSingle()
-  return (data?.number ?? 0) + 1
+  return Math.max(data?.number ?? 0, await highestNumberEver("invoices")) + 1
 }
