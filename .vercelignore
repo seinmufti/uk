@@ -1,0 +1,5 @@
+# Local build folders and secrets never go up to Vercel (it builds the app itself)
+.next
+.next-demo
+node_modules
+.env*.local
