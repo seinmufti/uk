@@ -78,7 +78,7 @@ const ckb: DeepPartial<Messages> = {
     amount: "بڕ",
     actions: "کردارەکان",
     noData: "هێشتا هیچ شتێک لێرە نییە.",
-    confirmDelete: "ئەمە بسڕدرێتەوە؟ ناتوانرێت بگەڕێندرێتەوە.",
+    confirmDelete: "ئەمە بسڕدرێتەوە؟ دەتوانیت لە مێژوودا بیگەڕێنیتەوە.",
     deleted: "سڕایەوە",
     saved: "پاشەکەوت کرا",
     required: "پێویستە",

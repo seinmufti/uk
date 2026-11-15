@@ -77,7 +77,7 @@ const en = {
     amount: "Amount",
     actions: "Actions",
     noData: "Nothing here yet.",
-    confirmDelete: "Delete this? This can't be undone.",
+    confirmDelete: "Delete this? You can bring it back from History.",
     deleted: "Deleted",
     saved: "Saved",
     required: "Required",

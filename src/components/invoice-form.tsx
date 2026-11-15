@@ -2,7 +2,7 @@
 
 import { Check, Plus, RefreshCw, Trash2, UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -70,6 +70,7 @@ export function InvoiceForm({
   const paidLines = payment === "full" ? linesTotal : payment === "none" ? 0 : Math.min(num(paidText), linesTotal)
   const dueLines = Math.max(0, linesTotal - paidLines)
   const coversTotal = payment === "part" && linesTotal > 0 && num(paidText) >= linesTotal
+  const paidBox = useRef<HTMLDivElement>(null)
 
   // Switching to or from IQD converts the typed costs, so the invoice keeps its value
   const changeMode = (next: CurrencyMode) => {
@@ -229,21 +230,20 @@ export function InvoiceForm({
           >
             <Check /> {t("invoices.paidInFull")}
           </Button>
-          <Button type="button" variant={payment === "part" ? "default" : "outline"} onClick={() => setPayment("part")}>
+          <Button type="button" variant={payment === "part" ? "default" : "outline"} onClick={() => (setPayment("part"), paidBox.current?.querySelector("input")?.focus())}>
             {t("invoices.paidAmountToggle")}
           </Button>
-          {payment === "part" && (
-            <div className="flex items-center gap-2 sm:ms-auto">
-              <span className="text-sm text-muted-foreground">{t("invoices.paidAmount")} ({cur})</span>
-              <NumberInput
-                autoFocus
-                value={paidText}
-                onChange={(e) => setPaidText(e.target.value)}
-                placeholder="0"
-                className={cn("w-36 text-end tabular-nums", AREA.rate)}
-              />
-            </div>
-          )}
+          {/* Always shown; clicking into it picks "Paid amount" */}
+          <div ref={paidBox} className="flex items-center gap-2 sm:ms-auto">
+            <span className="text-sm text-muted-foreground">{t("invoices.paidAmount")} ({cur})</span>
+            <NumberInput
+              onFocus={() => setPayment("part")}
+              value={paidText}
+              onChange={(e) => setPaidText(e.target.value)}
+              placeholder="0"
+              className={cn("w-36 text-end tabular-nums", AREA.rate)}
+            />
+          </div>
         </div>
         <div className="flex items-center justify-between border-t pt-3 text-sm">
           <span className="text-muted-foreground">{t("invoices.balanceDue")}</span>

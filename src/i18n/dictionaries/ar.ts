@@ -78,7 +78,7 @@ const ar: DeepPartial<Messages> = {
     amount: "المبلغ",
     actions: "إجراءات",
     noData: "لا يوجد شيء هنا بعد.",
-    confirmDelete: "حذف هذا العنصر؟ لا يمكن التراجع عن ذلك.",
+    confirmDelete: "حذف هذا العنصر؟ يمكنك استرجاعه من السجل.",
     deleted: "تم الحذف",
     saved: "تم الحفظ",
     required: "مطلوب",
