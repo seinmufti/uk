@@ -11,7 +11,7 @@ export default async function LoginPage() {
   if (await getSession()) redirect("/")
   const t = await getT()
   return (
-    <AuthCard title={t("login.title")} subtitle={t("login.subtitle")}>
+    <AuthCard title={t("login.title")}>
       {IS_DEMO ? (
         <form action={signInDemo} className="mt-6">
           <Button type="submit" size="lg" className="w-full">

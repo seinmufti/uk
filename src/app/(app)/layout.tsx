@@ -1,4 +1,5 @@
-import { Calculator } from "lucide-react"
+import Image from "next/image"
+import logo from "@/assets/logo.webp"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
@@ -21,11 +22,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <LiveData />
       <header className="relative flex h-12 shrink-0 items-center gap-2 border-b bg-card px-3 md:px-5 print:hidden">
         <Link href="/" className="flex items-center gap-2 rounded-md px-1 py-1 hover:opacity-80">
-          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Calculator className="size-4" />
-          </span>
-          <span className="font-semibold">{t("app.name")}</span>
+          <Image src={logo} alt="UK Group" width={32} height={32} priority className="size-8 rounded-md" />
+          <span className="hidden font-semibold md:inline">{t("app.name")}</span>
         </Link>
+        {/* The page's title (see PageHeader): in the middle of the bar, after the logo on phones */}
+        <div id="nav-title" className="min-w-0 md:absolute md:left-1/2 md:max-w-[40%] md:-translate-x-1/2" />
         <div className="ms-auto flex items-center gap-1">
           <Suspense>
             <RateBadge />

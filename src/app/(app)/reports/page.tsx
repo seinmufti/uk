@@ -45,19 +45,23 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
 
   return (
     <div className="grid gap-4 p-4 md:p-6">
-      <PageHeader title={t("reports.title")} />
-      <div className="flex flex-wrap items-center gap-3">
-        <LinkTabs active={period} tabs={PERIODS.map((p) => ({ value: p, href: href(p, anchor), label: t(`reports.period.${p}`) }))} />
-        <div className="flex items-center gap-1">
-          <Link href={href(period, shiftPeriod(period, anchor, -1))} className={buttonVariants({ variant: "outline", size: "icon" })} aria-label={t("reports.prev")}>
-            <ChevronLeft className="rtl:rotate-180" />
-          </Link>
-          <span className="min-w-40 px-2 text-center text-sm font-medium">{periodLabel(period, anchor)}</span>
-          <Link href={href(period, shiftPeriod(period, anchor, 1))} className={buttonVariants({ variant: "outline", size: "icon" })} aria-label={t("reports.next")}>
-            <ChevronRight className="rtl:rotate-180" />
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={t("reports.title")}
+        tabs={
+          <>
+            <LinkTabs active={period} tabs={PERIODS.map((p) => ({ value: p, href: href(p, anchor), label: t(`reports.period.${p}`) }))} />
+            <div className="flex items-center gap-1">
+              <Link href={href(period, shiftPeriod(period, anchor, -1))} className={buttonVariants({ variant: "outline", size: "icon" })} aria-label={t("reports.prev")}>
+                <ChevronLeft className="rtl:rotate-180" />
+              </Link>
+              <span className="min-w-40 px-2 text-center text-sm font-medium">{periodLabel(period, anchor)}</span>
+              <Link href={href(period, shiftPeriod(period, anchor, 1))} className={buttonVariants({ variant: "outline", size: "icon" })} aria-label={t("reports.next")}>
+                <ChevronRight className="rtl:rotate-180" />
+              </Link>
+            </div>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label={t("reports.income")} value={usd(report.income)} sub={`${t("reports.invoiceCount", { count: report.invoiceCount })} · ${inIqd(report.income) ?? ""}`} />
@@ -111,9 +115,6 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
           <Line indent label={t("reports.capital")} value={b.capital} />
           <Line indent label={t("reports.retained")} value={b.retained} />
           <Line strong label={t("reports.totalEquity")} value={b.totalEquity} />
-          <p className="mt-3 text-xs text-muted-foreground">
-            {t("reports.cash")}: {t("reports.cashNote")}
-          </p>
         </section>
 
         {period === "yearly" && (
@@ -127,10 +128,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
               <span className="font-medium">{t("reports.zakatDue", { percent: report.zakat.percent })}</span>
               <span className="text-end">
                 <span className="block text-xl font-semibold text-emerald-800 dark:text-emerald-400 tabular-nums"><Amount usd={report.zakat.due} /></span>
-                {inIqd(report.zakat.due) && <span className="text-xs text-muted-foreground tabular-nums">{inIqd(report.zakat.due)}</span>}
               </span>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">{t("reports.zakatNote")}</p>
           </section>
         )}
       </div>

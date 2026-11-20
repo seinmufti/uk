@@ -41,7 +41,6 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
     <div className="grid gap-4 p-4 md:p-6">
       <PageHeader
         title={t("expenses.title")}
-        subtitle={t("expenses.subtitle")}
         actions={
           <Button onClick={() => editor.openNew()}>
             <Plus /> {t("expenses.new")}

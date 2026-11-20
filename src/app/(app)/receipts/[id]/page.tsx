@@ -20,7 +20,6 @@ export default async function ReceiptPage({ params }: PageProps<"/receipts/[id]"
   const rows: [string, React.ReactNode][] = [
     [t(isIn ? "receipts.from" : "receipts.to"), <span key="p" className="font-medium">{r.party}</span>],
     [t("receipts.for"), r.for_label ?? t("receipts.onAccount")],
-    [t("receipts.method"), t(`receipts.methods.${r.method}`)],
     [t("receipts.exchangeRate"), <span key="r" className="tabular-nums">{plain(r.rate_per_100, 0)}</span>],
   ]
 
@@ -73,7 +72,6 @@ export default async function ReceiptPage({ params }: PageProps<"/receipts/[id]"
           <div className="border-t pt-1 text-end">{t("receipts.signature")}</div>
         </div>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground print:hidden">{t("receipts.deleteNote")}</p>
     </div>
   )
 }

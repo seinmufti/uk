@@ -28,7 +28,7 @@ export async function DocPayments({ receipts, recordHref }: { receipts: Receipt[
           <Link key={r.id} href={`/receipts/${r.id}`} className="flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-muted/50">
             <span>
               <span className="font-mono">{receiptNumber(r.kind, r.number)}</span>
-              <span className="text-muted-foreground"> · {formatDate(r.date, locale)} · {t(`receipts.methods.${r.method}`)}</span>
+              <span className="text-muted-foreground"> · {formatDate(r.date, locale)}</span>
             </span>
             <Amount usd={r.amount_usd} rate={r.rate_per_100} className="font-medium" />
           </Link>

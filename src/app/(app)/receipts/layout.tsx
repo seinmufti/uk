@@ -14,22 +14,18 @@ export default async function ReceiptsLayout({ children }: LayoutProps<"/receipt
   const receipts = await listReceipts()
   return (
     <div className="flex h-full flex-col">
-      <PageHeader
-        inset={false}
-        title={t("receipts.title")}
-        actions={
-          <>
-            <Link href="/receipts/new?kind=in" className={buttonVariants({ variant: "outline" })}>
-              <Plus /> {t("receipts.newIn")}
-            </Link>
-            <Link href="/receipts/new?kind=out" className={buttonVariants()}>
-              <Plus /> {t("receipts.newOut")}
-            </Link>
-          </>
-        }
-      />
+      <PageHeader inset={false} title={t("receipts.title")} />
       <TwoPane
         list={
+          <>
+            <div className="flex flex-wrap items-center justify-end gap-2 border-b p-2">
+              <Link href="/receipts/new?kind=in" className={buttonVariants({ variant: "outline" })}>
+                <Plus /> {t("receipts.newIn")}
+              </Link>
+              <Link href="/receipts/new?kind=out" className={buttonVariants()}>
+                <Plus /> {t("receipts.newOut")}
+              </Link>
+            </div>
           <DocList
             basePath="/receipts"
             empty={t("receipts.empty")}
@@ -43,6 +39,7 @@ export default async function ReceiptsLayout({ children }: LayoutProps<"/receipt
               badge: r.kind === "in" ? { label: t("receipts.kind.in"), tone: "good" } : { label: t("receipts.kind.out"), tone: "warn" },
             }))}
           />
+          </>
         }
       >
         {children}

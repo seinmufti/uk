@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { saveReceipt } from "@/lib/actions/receipts"
 import { today } from "@/lib/dates"
-import { RECEIPT_METHODS, type OpenItem, type Party, type ReceiptKind, type ReceiptMethod } from "@/lib/data/types"
+import type { OpenItem, Party, ReceiptKind } from "@/lib/data/types"
 import { iqd, num, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { AREA, Field, NativeSelect } from "./form-bits"
 import { NumberInput } from "./number-input"
+import { PartyPicker } from "./party-picker"
 import { PartyDialog } from "./party-dialog"
 import { useAction } from "./use-action"
 
@@ -49,7 +50,6 @@ export function ReceiptForm({
   const [amount, setAmount] = useState(start ? String(start.remaining) : "")
   const [date, setDate] = useState(today())
   const [rate, setRate] = useState(String(liveRate ?? ""))
-  const [method, setMethod] = useState<ReceiptMethod>("cash")
   const [notes, setNotes] = useState("")
   const [newParty, setNewParty] = useState(false)
 
@@ -85,7 +85,8 @@ export function ReceiptForm({
           party_id: partyId,
           amount_usd: num(amount),
           rate_per_100: num(rate),
-          method,
+          // Everything is paid in cash
+          method: "cash",
           invoice_id: chosen?.type === "invoice" ? chosen.id : null,
           debt_id: chosen?.type === "debt" ? chosen.id : null,
           notes: notes || null,
@@ -133,14 +134,7 @@ export function ReceiptForm({
       <div className={cn("grid gap-4 sm:grid-cols-2", AREA.party)}>
         <Field label={t(kind === "in" ? "receipts.customer" : "receipts.supplier")}>
           <div className="flex gap-2">
-            <NativeSelect value={partyId} onChange={(e) => pickParty(e.target.value)} required>
-              <option value={NONE}>{t("receipts.choose")}</option>
-              {parties[kind].map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </NativeSelect>
+            <PartyPicker parties={parties[kind]} value={partyId} onChange={pickParty} placeholder={t("receipts.choose")} required />
             <Button type="button" variant="outline" size="icon" onClick={() => setNewParty(true)} aria-label={t(kind === "in" ? "receipts.customer" : "receipts.supplier")}>
               <UserPlus />
             </Button>
@@ -163,7 +157,7 @@ export function ReceiptForm({
         {party && items.length === 0 && <p className="text-xs text-muted-foreground">{t("receipts.nothingOwed")}</p>}
       </Field>
 
-      <div className={cn("grid gap-4 sm:grid-cols-2", AREA.payment)}>
+      <div className={cn("grid gap-4", AREA.payment)}>
         <Field label={t("receipts.amount")}>
           <NumberInput
             
@@ -176,15 +170,6 @@ export function ReceiptForm({
             required
             className="text-end tabular-nums"
           />
-        </Field>
-        <Field label={t("receipts.method")}>
-          <NativeSelect value={method} onChange={(e) => setMethod(e.target.value as ReceiptMethod)}>
-            {RECEIPT_METHODS.map((m) => (
-              <option key={m} value={m}>
-                {t(`receipts.methods.${m}`)}
-              </option>
-            ))}
-          </NativeSelect>
         </Field>
       </div>
 

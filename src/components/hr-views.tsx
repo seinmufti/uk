@@ -34,6 +34,7 @@ import { Amount } from "./amount"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { NumberInput } from "./number-input"
+import { PageHeader } from "./page-header"
 import { PhoneInput } from "./phone-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { useAction } from "./use-action"
@@ -127,11 +128,15 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
   const payroll = employees.filter((e) => e.active).reduce((s, e) => s + e.base_salary_usd, 0)
   return (
     <div className="grid gap-4">
-      <div className="flex justify-end">
-        <Button onClick={() => editor.openNew()}>
-          <Plus /> {t("hr.newEmployee")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("hr.title")}
+        tabs={<HrTabs />}
+        actions={
+          <Button onClick={() => editor.openNew()}>
+            <Plus /> {t("hr.newEmployee")}
+          </Button>
+        }
+      />
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -211,6 +216,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
 
   return (
     <div className="grid gap-6">
+      <PageHeader title={t("hr.title")} tabs={<HrTabs />} />
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border p-4">
         <div>
           <div className="text-lg font-semibold">{employee.name}</div>
@@ -430,15 +436,25 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label={t("hr.month")}>
-          <Input type="month" value={month.slice(0, 7)} onChange={(e) => e.target.value && router.push(`/hr/payroll?month=${e.target.value}`)} className="w-44" />
-        </Field>
-        <Button disabled={pending} onClick={() => run(() => generatePayroll(month), { success: t("hr.generated") })}>
-          <Wand2 /> {t("hr.generate")}
-        </Button>
-      </div>
-      <p className="text-xs text-muted-foreground">{t("hr.deductionHint")}</p>
+      <PageHeader
+        title={t("hr.title")}
+        tabs={<HrTabs />}
+        actions={
+          <>
+            <Input
+              type="month"
+              aria-label={t("hr.month")}
+              title={t("hr.month")}
+              value={month.slice(0, 7)}
+              onChange={(e) => e.target.value && router.push(`/hr/payroll?month=${e.target.value}`)}
+              className="w-44"
+            />
+            <Button disabled={pending} onClick={() => run(() => generatePayroll(month), { success: t("hr.generated") })}>
+              <Wand2 /> {t("hr.generate")}
+            </Button>
+          </>
+        }
+      />
       <div className="rounded-lg border">
         <Table>
           <TableHeader>

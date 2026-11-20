@@ -33,7 +33,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
     <div className="grid gap-4 p-4 md:p-6">
       <PageHeader
         title={t("inventory.title")}
-        subtitle={t("inventory.subtitle")}
+        tabs={<LinkTabs active={kind} tabs={INVENTORY_KINDS.map((k) => ({ value: k, href: `/inventory?tab=${k}`, label: t(`inventory.kind.${k}`) }))} />}
         actions={
           <Button onClick={() => editor.openNew({ kind })}>
             <Plus /> {t("inventory.new")}
@@ -48,7 +48,6 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
           </Link>
         ))}
       </div>
-      <LinkTabs active={kind} tabs={INVENTORY_KINDS.map((k) => ({ value: k, href: `/inventory?tab=${k}`, label: t(`inventory.kind.${k}`) }))} />
       <div className="rounded-lg border">
         <Table>
           <TableHeader>

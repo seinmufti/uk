@@ -15,8 +15,9 @@ import { randomDemoInvoice } from "@/lib/demo-invoices"
 import type { CurrencyMode, DocKind, Invoice, Party } from "@/lib/data/types"
 import { docNumber, iqd, iqdToUsd, num, round2, round6, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { AREA, Field, NativeSelect } from "./form-bits"
+import { AREA, Field } from "./form-bits"
 import { NumberInput } from "./number-input"
+import { PartyPicker } from "./party-picker"
 import { CurrencyToggle } from "./currency-toggle"
 import { PartyDialog } from "./party-dialog"
 import { useAction } from "./use-action"
@@ -170,14 +171,7 @@ export function InvoiceForm({
       <div className={cn("grid gap-4 sm:grid-cols-2", AREA.party)}>
         <Field label={t(W.party)}>
           <div className="flex gap-2">
-            <NativeSelect value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-              <option value="">{t(W.noParty)}</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </NativeSelect>
+            <PartyPicker parties={customers} value={customerId} onChange={setCustomerId} placeholder={t(W.noParty)} clearable />
             <Button type="button" variant="outline" size="icon" onClick={() => setNewCustomer(true)} aria-label={t(W.newParty)} title={t(W.newParty)}>
               <UserPlus />
             </Button>

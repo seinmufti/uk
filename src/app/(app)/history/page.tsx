@@ -16,7 +16,6 @@ export default async function HistoryPage() {
     <div className="grid gap-4 p-4 md:p-6">
       <PageHeader
         title={t("history.title")}
-        subtitle={t("history.subtitle")}
         actions={
           // A plain link: the browser downloads the file
           <a href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/backup`} className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-sm font-medium hover:bg-muted">

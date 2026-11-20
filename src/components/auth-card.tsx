@@ -1,4 +1,5 @@
-import { Calculator } from "lucide-react"
+import Image from "next/image"
+import logo from "@/assets/logo.webp"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { getT } from "@/i18n/server"
 
@@ -12,9 +13,7 @@ export async function AuthCard({ title, subtitle, children }: { title: string; s
       </div>
       <div className="w-full max-w-sm rounded-xl border bg-background p-6 shadow-sm">
         <div className="mb-6 flex items-center gap-2">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Calculator className="size-5" />
-          </div>
+          <Image src={logo} alt="UK Group" width={44} height={44} priority className="size-11 rounded-lg" />
           <span className="text-lg font-semibold">{t("app.name")}</span>
         </div>
         <h1 className="text-xl font-semibold">{title}</h1>

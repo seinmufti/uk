@@ -38,7 +38,6 @@ export function AccountsTable({ users, me }: { users: User[]; me: string }) {
     <div className="grid gap-4 p-4 md:p-6">
       <PageHeader
         title={t("auth.accounts")}
-        subtitle={t("auth.accountsNote")}
         actions={
           <Button onClick={() => (setForm({ username: "", password: "", admin: false }), setAdding(true))}>
             <Plus /> {t("auth.newAccount")}
@@ -120,7 +119,7 @@ export function AccountsTable({ users, me }: { users: User[]; me: string }) {
         </Field>
         <Label className="flex items-center gap-2 font-normal">
           <Checkbox checked={form.admin} onCheckedChange={(v) => setForm({ ...form, admin: !!v })} />
-          {t("auth.admin")} · <span className="text-muted-foreground">{t("auth.adminNote")}</span>
+          {t("auth.admin")}
         </Label>
       </FormDialog>
 

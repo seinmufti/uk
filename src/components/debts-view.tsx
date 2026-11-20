@@ -12,8 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { deleteDebt, payDebt, saveDebt } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
-import type { Debt, DebtDirection, InvoiceRow } from "@/lib/data/types"
-import { docNumber, iqd, num, round2, usd, usdToIqd } from "@/lib/money"
+import type { Debt, DebtDirection } from "@/lib/data/types"
+import { num, round2 } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
 import { NumberInput } from "./number-input"
@@ -22,20 +22,15 @@ import { LinkTabs } from "./link-tabs"
 import { PageHeader } from "./page-header"
 import { useAction } from "./use-action"
 
-/** An invoice amount (stored in USD) in the currency the invoice is shown in */
-const money = (inv: InvoiceRow, n: number) => (inv.currency_mode === "iqd" ? iqd(usdToIqd(n, inv.rate_per_100)) : usd(n))
-
 const blank = () => ({ party: "", amount_usd: "", date: today(), due_date: "", notes: "" })
 
 export function DebtsView({
   direction,
   debts,
-  unpaidInvoices,
   totals,
 }: {
   direction: DebtDirection
   debts: Debt[]
-  unpaidInvoices: InvoiceRow[]
   totals: Record<DebtDirection, number>
 }) {
   const { t, locale } = useI18n()
@@ -49,7 +44,7 @@ export function DebtsView({
     <div className="grid gap-4 p-4 md:p-6">
       <PageHeader
         title={t("debts.title")}
-        subtitle={t("debts.subtitle")}
+        tabs={<LinkTabs active={direction} tabs={(["receivable", "payable"] as const).map((d) => ({ value: d, href: `/debts?tab=${d}`, label: t(`debts.direction.${d}`) }))} />}
         actions={
           <Button onClick={() => editor.openNew()}>
             <Plus /> {t("debts.new")}
@@ -68,10 +63,6 @@ export function DebtsView({
           </Link>
         ))}
       </div>
-      <LinkTabs
-        active={direction}
-        tabs={(["receivable", "payable"] as const).map((d) => ({ value: d, href: `/debts?tab=${d}`, label: t(`debts.direction.${d}`) }))}
-      />
 
       <div className="rounded-lg border">
         <Table>
@@ -158,36 +149,6 @@ export function DebtsView({
           </TableBody>
         </Table>
       </div>
-
-      {direction === "receivable" && unpaidInvoices.length > 0 && (
-        <div className="grid gap-2">
-          <h2 className="text-sm font-medium">{t("debts.unpaidInvoices")}</h2>
-          <div className="divide-y rounded-lg border">
-            {unpaidInvoices.map((inv) => (
-              <Link key={inv.id} href={`/invoices/${inv.id}`} className="flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-muted/50">
-                <span>
-                  <span className="font-mono">#{docNumber(inv.number)}</span> · {inv.customer_name ?? t("invoices.noCustomer")}
-                  {inv.due_date && (
-                    <span className={inv.due_date < today() ? "block text-xs font-medium text-red-700 dark:text-red-400" : "block text-xs text-muted-foreground"}>
-                      {t("invoices.dueDate")}: {formatDate(inv.due_date, locale)}
-                      {inv.due_date < today() && ` · ${t("invoices.overdue")}`}
-                    </span>
-                  )}
-                </span>
-                {/* What is still owed, in the invoice's own currency; the full total and what was paid underneath */}
-                <span className="text-end tabular-nums">
-                  <span className="block font-medium">{money(inv, inv.total_usd - inv.amount_paid_usd)}</span>
-                  {inv.amount_paid_usd > 0 && (
-                    <span className="block text-xs text-muted-foreground">
-                      {t("common.paid")} {money(inv, inv.amount_paid_usd)} / {money(inv, inv.total_usd)}
-                    </span>
-                  )}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       <FormDialog
         title={editor.id ? t("debts.edit") : t("debts.new")}

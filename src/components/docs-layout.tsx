@@ -2,7 +2,6 @@ import { Plus } from "lucide-react"
 import Link from "next/link"
 import { Amount } from "@/components/amount"
 import { DocList } from "@/components/doc-list"
-import { LinkTabs } from "@/components/link-tabs"
 import { PageHeader } from "@/components/page-header"
 import { TwoPane } from "@/components/two-pane"
 import { buttonVariants } from "@/components/ui/button"
@@ -11,12 +10,10 @@ import { today } from "@/lib/dates"
 import { listInvoices } from "@/lib/data/invoices"
 import { listPurchases } from "@/lib/data/purchases"
 import type { DocKind, InvoiceRow } from "@/lib/data/types"
-import { isEnabled } from "@/lib/features"
 import { docNumber, iqd, usd, usdToIqd } from "@/lib/money"
 
 /**
- * Sales invoices (/invoices) and purchase invoices (/purchases) side by side: the same list and header,
- * with tabs to switch between selling and buying.
+ * Sales invoices (/invoices) and purchase invoices (/purchases): the same list and header for both.
  */
 export async function DocsLayout({ kind, children }: { kind: DocKind; children: React.ReactNode }) {
   const t = await getT()
@@ -30,34 +27,19 @@ export async function DocsLayout({ kind, children }: { kind: DocKind; children: 
       : r.due_date && r.due_date < now
         ? ({ label: t("invoices.overdue"), tone: "bad" } as const)
         : ({ label: t(r.amount_paid_usd > 0 ? "invoices.partlyPaid" : "invoices.status.unpaid"), tone: "warn" } as const)
-  const tabs = isEnabled("invoices") && isEnabled("purchases")
   return (
     <div className="flex h-full flex-col">
-      <PageHeader
-        inset={false}
-        title={t(sale ? "invoices.title" : "purchases.title")}
-        actions={
-          <Link href={`${base}/new`} prefetch className={buttonVariants()}>
-            <Plus /> {t(sale ? "invoices.new" : "purchases.new")}
-          </Link>
-        }
-      />
+      <PageHeader inset={false} title={t(sale ? "invoices.title" : "purchases.title")} />
       <TwoPane
         list={
           <>
-            {tabs && (
-              <div className="border-b p-2">
-                <LinkTabs
-                  active={kind}
-                  tabs={[
-                    { value: "sale", href: "/invoices", label: t("invoices.salesTab") },
-                    { value: "purchase", href: "/purchases", label: t("invoices.purchasesTab") },
-                  ]}
-                />
-              </div>
-            )}
             <DocList
               basePath={base}
+              action={
+                <Link href={`${base}/new`} prefetch className={buttonVariants()}>
+                  <Plus /> {t(sale ? "invoices.new" : "purchases.new")}
+                </Link>
+              }
               empty={t(sale ? "invoices.empty" : "purchases.empty")}
               items={rows.map((r) => ({
                 id: r.id,

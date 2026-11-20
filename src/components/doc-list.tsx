@@ -33,7 +33,7 @@ const FULL = "full" as Kind
 const PRELOAD = 50
 
 /** The searchable list of invoices / purchases on the start side. */
-export function DocList({ items, basePath, empty }: { items: DocListItem[]; basePath: string; empty: string }) {
+export function DocList({ items, basePath, empty, action }: { items: DocListItem[]; basePath: string; empty: string; action?: React.ReactNode }) {
   const { t, locale } = useI18n()
   const [query, setQuery] = useState("")
   const selected = useSelectedLayoutSegment()
@@ -54,11 +54,13 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
 
   return (
     <>
-      <div className="border-b p-2">
-        <div className="relative">
+      {/* Search, with the section's button (e.g. New invoice) beside it */}
+      <div className="flex items-center gap-2 border-b p-2">
+        <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("common.search")} className="ps-8" />
         </div>
+        {action}
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {shown.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{items.length ? t("common.noData") : empty}</p>}
