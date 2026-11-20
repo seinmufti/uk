@@ -129,26 +129,68 @@ async function generatePayrollAction(month: string) {
           .filter((a) => a.employee_id === e.id && !myLeaves.some((l) => a.date >= l.from_date && a.date <= l.to_date))
           .reduce((s, a) => s + num(a.days), 0)
         // Never more than the salary itself
-        return { month: from, employee_id: e.id, base_usd: base, deductions_usd: Math.min(base, round2((num(e.base_salary_usd) / 30) * (leaveDays + missing))) }
+        return { month: from, employee_id: e.id, base_usd: base, deductions_usd: Math.min(base, round2((num(e.base_salary_usd) / 30) * (leaveDays + missing))), days: leaveDays + missing }
       })
-    if (rows.length) must(await db().from("payroll").insert(rows))
+    if (!rows.length) return
+    const saved = must(await db().from("payroll").insert(rows.map((r) => ({ month: r.month, employee_id: r.employee_id, base_usd: r.base_usd, deductions_usd: r.deductions_usd }))).select("id, employee_id"))
+    // The leave / absence deduction is the first entry on the row (it can be changed or removed like any other)
+    const auto = rows
+      .filter((r) => r.deductions_usd > 0)
+      .map((r) => ({ payroll_id: saved.find((x) => x.employee_id === r.employee_id)!.id, kind: "deduction", amount_usd: r.deductions_usd, reason: `Unpaid leave and absences (${r.days} days)` }))
+    if (auto.length) must(await db().from("payroll_items").insert(auto))
   })
 }
 
-async function updatePayrollAction(id: string, values: { deductions_usd: number; bonuses_usd: number }) {
+/**
+ * A payroll row's deductions and bonuses are the sums of its entries; a paid row's salary expense follows
+ * the new net amount. Deductions can never be more than the salary plus bonuses.
+ */
+async function syncPayroll(payrollId: string) {
+  const [row, items] = await Promise.all([
+    db().from("payroll").select("base_usd").eq("id", payrollId).single(),
+    db().from("payroll_items").select("kind, amount_usd").eq("payroll_id", payrollId),
+  ])
+  const sum = (kind: string) => round2(must(items).filter((i) => i.kind === kind).reduce((s, i) => s + num(i.amount_usd), 0))
+  const deductions = sum("deduction")
+  const bonuses = sum("bonus")
+  const base = num(must(row).base_usd)
+  if (deductions > base + bonuses) throw new Error("Deductions can't be more than the salary")
+  must(await db().from("payroll").update({ deductions_usd: deductions, bonuses_usd: bonuses }).eq("id", payrollId))
+  must(await db().from("expenses").update({ amount_usd: round2(base - deductions + bonuses) }).eq("payroll_id", payrollId))
+}
+
+const PayrollItemSchema = z.object({
+  kind: z.enum(["bonus", "deduction"]),
+  amount_usd: z.coerce.number().positive("Amount is required"),
+  reason: z.string().trim().nullable().optional(),
+})
+export type PayrollItemInput = z.input<typeof PayrollItemSchema>
+
+/** Adds a bonus or a deduction to one employee's payroll row (or changes one: pass its id). */
+async function savePayrollItemAction(payrollId: string, itemId: string | null, input: PayrollItemInput) {
   return attempt(async () => {
-    const v = z.object({ deductions_usd: z.coerce.number().min(0), bonuses_usd: z.coerce.number().min(0) }).parse(values)
-    const current = must(await db().from("payroll").select("base_usd").eq("id", id).single())
-    if (v.deductions_usd > num(current.base_usd) + v.bonuses_usd) throw new Error("Deductions can't be more than the salary")
-    must(await db().from("payroll").update(v).eq("id", id))
-    // A paid row's salary expense follows the new net amount
-    const row = must(await db().from("payroll").select("base_usd, deductions_usd, bonuses_usd").eq("id", id).single())
-    must(
-      await db()
-        .from("expenses")
-        .update({ amount_usd: round2(num(row.base_usd) - num(row.deductions_usd) + num(row.bonuses_usd)) })
-        .eq("payroll_id", id),
-    )
+    const v = PayrollItemSchema.parse(input)
+    const values = { ...v, amount_usd: round2(v.amount_usd), reason: v.reason || null }
+    const before = itemId ? must(await db().from("payroll_items").select("kind, amount_usd, reason").eq("id", itemId).single()) : null
+    const id = itemId
+      ? (must(await db().from("payroll_items").update(values).eq("id", itemId)), itemId)
+      : must(await db().from("payroll_items").insert({ ...values, payroll_id: payrollId }).select("id").single()).id
+    try {
+      await syncPayroll(payrollId)
+    } catch (e) {
+      // Too big a deduction: put the entry back as it was
+      if (before) must(await db().from("payroll_items").update(before).eq("id", id))
+      else must(await db().from("payroll_items").delete().eq("id", id))
+      throw e
+    }
+  })
+}
+
+async function deletePayrollItemAction(itemId: string) {
+  return attempt(async () => {
+    const item = must(await db().from("payroll_items").select("payroll_id").eq("id", itemId).single())
+    must(await db().from("payroll_items").delete().eq("id", itemId))
+    await syncPayroll(item.payroll_id)
   })
 }
 
@@ -191,6 +233,7 @@ export const deleteLeave = tracked(deleteLeaveAction)
 export const addAbsence = tracked(addAbsenceAction)
 export const deleteAbsence = tracked(deleteAbsenceAction)
 export const generatePayroll = tracked(generatePayrollAction)
-export const updatePayroll = tracked(updatePayrollAction)
+export const savePayrollItem = tracked(savePayrollItemAction)
+export const deletePayrollItem = tracked(deletePayrollItemAction)
 export const setPayrollPaid = tracked(setPayrollPaidAction)
 export const deletePayroll = tracked(deletePayrollAction)

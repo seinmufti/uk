@@ -69,3 +69,21 @@ export async function listOpenItems(): Promise<Record<ReceiptKind, OpenItem[]>> 
     out: open.filter((d) => d.direction === "payable").map(debtItem),
   }
 }
+
+/** The receipts that paid a sales invoice, or the debt of a purchase invoice (oldest first). */
+export async function receiptsFor(doc: { invoiceId: string } | { purchaseId: string }): Promise<Receipt[]> {
+  let q = db().from("receipts").select(SELECT).order("date").order("created_at")
+  if ("invoiceId" in doc) q = q.eq("invoice_id", doc.invoiceId)
+  else {
+    const debt = must(await db().from("debts").select("id").eq("purchase_id", doc.purchaseId))
+    if (!debt.length) return []
+    q = q.in("debt_id", debt.map((d) => d.id))
+  }
+  return (must(await q) as unknown as Row[]).map(toReceipt)
+}
+
+/** The open debt of a purchase invoice (what a payment out is recorded against), if any. */
+export async function purchaseDebtId(purchaseId: string): Promise<string | null> {
+  const row = must(await db().from("debts").select("id").eq("purchase_id", purchaseId).maybeSingle())
+  return row?.id ?? null
+}

@@ -1,6 +1,7 @@
 "use client"
 
 import { Copy, Pencil, Plus, Repeat } from "lucide-react"
+import { Amount } from "@/components/amount"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,7 @@ import { useI18n } from "@/i18n/provider"
 import { deleteExpense, saveExpense } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
 import { EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from "@/lib/data/types"
-import { num, usd } from "@/lib/money"
+import { num } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { NumberInput } from "./number-input"
@@ -66,7 +67,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
         </Field>
         <div className="ms-auto rounded-lg border px-3 py-1.5 text-end">
           <div className="text-xs text-muted-foreground">{t("expenses.totalInRange")}</div>
-          <div className="font-semibold tabular-nums">{usd(total)}</div>
+          <div className="font-semibold tabular-nums"><Amount usd={total} /></div>
         </div>
       </div>
 
@@ -101,7 +102,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
                   )}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{t.dynamic(`expenses.categories.${e.category}`, e.category)}</TableCell>
-                <TableCell className="text-end tabular-nums">{usd(e.amount_usd)}</TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={e.amount_usd} /></TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {/* Running costs: add this month's copy in one click */}
@@ -137,7 +138,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={3}>{t("common.total")}</TableCell>
-                <TableCell className="text-end font-semibold tabular-nums">{usd(total)}</TableCell>
+                <TableCell className="text-end font-semibold tabular-nums"><Amount usd={total} /></TableCell>
                 <TableCell />
               </TableRow>
             </TableFooter>

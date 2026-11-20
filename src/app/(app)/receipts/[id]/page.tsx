@@ -1,4 +1,5 @@
 import { ArrowLeft, Printer } from "lucide-react"
+import { Amount } from "@/components/amount"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ReceiptActions } from "@/components/receipt-actions"
@@ -6,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { getLocale, getT } from "@/i18n/server"
 import { formatDate } from "@/lib/dates"
 import { getReceipt, receiptNumber } from "@/lib/data/receipts"
-import { iqd, plain, usd, usdToIqd } from "@/lib/money"
+import { iqd, plain, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
 export default async function ReceiptPage({ params }: PageProps<"/receipts/[id]">) {
@@ -56,7 +57,7 @@ export default async function ReceiptPage({ params }: PageProps<"/receipts/[id]"
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{t("receipts.amount")}</span>
             <span className={cn("text-2xl font-semibold tabular-nums", isIn ? "text-emerald-700 dark:text-emerald-400" : "text-orange-700 dark:text-orange-400")}>
-              {usd(r.amount_usd)}
+              <Amount usd={r.amount_usd} />
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">

@@ -15,13 +15,16 @@ export type DocListItem = {
   title: string
   subtitle: string
   date: string
-  amount: string
-  badge?: { label: string; tone: "good" | "warn" | "muted" }
+  amount: React.ReactNode
+  /** Extra words to search by (e.g. the amount as text) */
+  text?: string
+  badge?: { label: string; tone: "good" | "warn" | "bad" | "muted" }
 }
 
 const TONES = {
   good: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900",
   warn: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900",
+  bad: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900",
   muted: "",
 }
 
@@ -35,7 +38,7 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
   const [query, setQuery] = useState("")
   const selected = useSelectedLayoutSegment()
   const q = query.trim().toLowerCase()
-  const shown = q ? items.filter((i) => `${i.title} ${i.subtitle} ${i.amount}`.toLowerCase().includes(q)) : items
+  const shown = q ? items.filter((i) => `${i.title} ${i.subtitle} ${i.text ?? ""}`.toLowerCase().includes(q)) : items
 
   // Load the newest documents (with their data) as soon as the list shows, so opening one is instant.
   // Older ones still load on hover.
@@ -65,9 +68,9 @@ export function DocList({ items, basePath, empty }: { items: DocListItem[]; base
             href={`${basePath}/${item.id}`}
             className={cn("block border-b px-3 py-2.5 transition-colors hover:bg-muted/60", selected === item.id && "bg-accent shadow-[inset_3px_0_0_var(--primary)]")}
           >
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
               <span className="font-medium tabular-nums">{item.title}</span>
-              <span className="text-sm font-medium tabular-nums">{item.amount}</span>
+              <span className="text-end text-sm font-medium tabular-nums">{item.amount}</span>
             </div>
             <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
               <span className="truncate">{item.subtitle}</span>

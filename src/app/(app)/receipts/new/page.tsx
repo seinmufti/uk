@@ -4,7 +4,7 @@ import { listOpenItems, nextReceiptNumber, receiptNumber } from "@/lib/data/rece
 import { getRate } from "@/lib/rate"
 
 export default async function NewReceiptPage({ searchParams }: PageProps<"/receipts/new">) {
-  const { kind } = await searchParams
+  const { kind, invoice, debt } = await searchParams
   const [customers, suppliers, open, nIn, nOut, rate] = await Promise.all([
     listParties("customers"),
     listParties("suppliers"),
@@ -21,6 +21,8 @@ export default async function NewReceiptPage({ searchParams }: PageProps<"/recei
       open={open}
       numbers={{ in: receiptNumber("in", nIn), out: receiptNumber("out", nOut) }}
       liveRate={rate?.rate ?? null}
+      // Opened from an invoice's "Record payment": already pointed at it
+      preselect={typeof invoice === "string" ? `invoice:${invoice}` : typeof debt === "string" ? `debt:${debt}` : undefined}
     />
   )
 }

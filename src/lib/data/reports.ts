@@ -30,7 +30,7 @@ export async function getReport(period: Period, from: string, to: string) {
   const [invoices, expenses, purchases, inventory, debts, settings, receipts] = await Promise.all([
     db().from("invoices").select("date, status, amount_paid_usd, discount_usd, invoice_items(total_usd)").lte("date", to),
     db().from("expenses").select("date, category, amount_usd").lte("date", to),
-    db().from("purchases").select("date, amount_paid_usd, purchase_items(qty, unit_cost_usd)").lte("date", to),
+    db().from("purchases").select("date, amount_paid_usd, discount_usd, purchase_items(qty, unit_cost_usd)").lte("date", to),
     db().from("inventory_items").select("kind, value_usd, date").lte("date", to),
     db().from("debts").select("direction, amount_usd, paid_usd, purchase_id, date").lte("date", to),
     db().from("settings").select("zakat_percent").eq("id", 1).single(),
@@ -49,7 +49,8 @@ export async function getReport(period: Period, from: string, to: string) {
   const pur = must(purchases).map((p) => ({
     date: p.date as string,
     paid: num(p.amount_paid_usd),
-    total: p.purchase_items.reduce((s: number, x: { qty: string; unit_cost_usd: string }) => s + num(x.qty) * num(x.unit_cost_usd), 0),
+    // After the purchase's discount
+    total: Math.max(0, p.purchase_items.reduce((s: number, x: { qty: string; unit_cost_usd: string }) => s + num(x.qty) * num(x.unit_cost_usd), 0) - num(p.discount_usd)),
   }))
   const inRange = (d: string) => d >= from && d <= to
   const sum = <T,>(rows: T[], pick: (r: T) => number) => round2(rows.reduce((s, r) => s + pick(r), 0))

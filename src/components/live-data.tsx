@@ -85,5 +85,11 @@ export function LiveData() {
     return () => document.removeEventListener("visibilitychange", onVisible)
   }, [pathname, router])
 
+  // The exchange rate (top bar, forms, amounts in IQD) is fetched again every 10 minutes
+  useEffect(() => {
+    const timer = setInterval(() => startTransition(() => router.refresh()), 10 * 60_000)
+    return () => clearInterval(timer)
+  }, [router])
+
   return null
 }

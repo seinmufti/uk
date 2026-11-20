@@ -4,16 +4,19 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { LiveData } from "@/components/live-data"
 import { RateBadge } from "@/components/rate-badge"
+import { RateProvider } from "@/components/rate-provider"
 import { SettingsMenu } from "@/components/settings-menu"
 import { getT } from "@/i18n/server"
 import { getSession } from "@/lib/auth"
 import { DB_READY } from "@/lib/db"
+import { getRate } from "@/lib/rate"
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await getSession()
   if (!session) redirect("/login")
-  const t = await getT()
+  const [t, rate] = await Promise.all([getT(), getRate()])
   return (
+    <RateProvider rate={rate?.rate ?? null}>
     <div className="flex h-dvh flex-col">
       <LiveData />
       <header className="relative flex h-12 shrink-0 items-center gap-2 border-b bg-card px-3 md:px-5 print:hidden">
@@ -41,5 +44,6 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         )}
       </main>
     </div>
+    </RateProvider>
   )
 }

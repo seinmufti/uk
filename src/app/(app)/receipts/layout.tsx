@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react"
 import Link from "next/link"
+import { Amount } from "@/components/amount"
 import { DocList } from "@/components/doc-list"
 import { PageHeader } from "@/components/page-header"
 import { TwoPane } from "@/components/two-pane"
@@ -37,7 +38,8 @@ export default async function ReceiptsLayout({ children }: LayoutProps<"/receipt
               title: receiptNumber(r.kind, r.number),
               subtitle: r.party,
               date: r.date,
-              amount: `${r.kind === "in" ? "+" : "−"}${usd(r.amount_usd)}`,
+              amount: <Amount usd={r.kind === "in" ? r.amount_usd : -r.amount_usd} rate={r.rate_per_100} />,
+              text: usd(r.amount_usd),
               badge: r.kind === "in" ? { label: t("receipts.kind.in"), tone: "good" } : { label: t("receipts.kind.out"), tone: "warn" },
             }))}
           />

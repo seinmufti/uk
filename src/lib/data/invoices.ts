@@ -11,12 +11,13 @@ const afterDiscount = (subtotal: number, discount: unknown) => round6(Math.max(0
 
 export async function listInvoices(): Promise<InvoiceRow[]> {
   const rows = must(
-    await db().from("invoices").select("id, number, date, status, customer_id, currency_mode, rate_per_100, amount_paid_usd, discount_usd, customers(name), invoice_items(total_usd)").order("number", { ascending: false }),
-  ) as unknown as { id: string; number: number; date: string; status: "paid" | "unpaid"; customer_id: string | null; currency_mode: Invoice["currency_mode"]; rate_per_100: string; amount_paid_usd: string; discount_usd: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }[]
+    await db().from("invoices").select("id, number, date, due_date, status, customer_id, currency_mode, rate_per_100, amount_paid_usd, discount_usd, customers(name), invoice_items(total_usd)").order("number", { ascending: false }),
+  ) as unknown as { id: string; number: number; date: string; due_date: string | null; status: "paid" | "unpaid"; customer_id: string | null; currency_mode: Invoice["currency_mode"]; rate_per_100: string; amount_paid_usd: string; discount_usd: string; customers: { name: string } | null; invoice_items: { total_usd: string }[] }[]
   return rows.map((r) => ({
     id: r.id,
     number: r.number,
     date: r.date,
+    due_date: r.due_date,
     status: r.status,
     customer_id: r.customer_id,
     customer_name: r.customers?.name ?? null,
@@ -41,6 +42,7 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
     id: data.id,
     number: data.number,
     date: data.date,
+    due_date: data.due_date ?? null,
     customer_id: data.customer_id,
     customer: data.customer,
     rate_per_100: num(data.rate_per_100),

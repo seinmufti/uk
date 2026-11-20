@@ -1,10 +1,9 @@
 // Signed tokens (Web Crypto HMAC-SHA256), so they work both in the proxy and on the server:
-// the sign-in cookie and the approve-account links. A token is base64url(JSON payload).signature;
+// the sign-in cookie. A token is base64url(JSON payload).signature;
 // nobody can make or change one without the secret.
 
 export type SessionPayload = { kind: "session"; uid: string; name: string; admin?: boolean; exp: number }
-export type ApprovePayload = { kind: "approve"; uid: string; exp: number }
-type Payload = SessionPayload | ApprovePayload
+type Payload = SessionPayload
 
 const encoder = new TextEncoder()
 const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")

@@ -3,23 +3,13 @@
 import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { DocSchema, settle, type DocInput } from "@/lib/doc-schema"
 import { db, must } from "@/lib/db"
 import { getPurchase, nextPurchaseNumber } from "@/lib/data/purchases"
-import { round2 } from "@/lib/money"
+import { num, round2, round6 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
-const PurchaseSchema = z.object({
-  date: z.string().min(1),
-  supplier_id: z.guid().nullable(),
-  payment_status: z.enum(["paid", "debt"]),
-  amount_paid_usd: z.coerce.number().min(0),
-  notes: z.string().trim().nullable().optional(),
-  items: z
-    .array(z.object({ description: z.string().trim(), qty: z.coerce.number().min(0), unit_cost_usd: z.coerce.number().min(0) }))
-    .transform((items) => items.filter((i) => i.description))
-    .refine((items) => items.length > 0, "Add at least one row with a description."),
-})
-export type PurchaseInput = z.input<typeof PurchaseSchema>
+export type PurchaseInput = DocInput
 
 const refresh = () => {
   revalidatePath("/purchases", "layout")
@@ -29,25 +19,27 @@ const refresh = () => {
 }
 
 /**
- * A purchase on credit keeps one payable debt in step with it (total − paid now). Payments already
- * recorded on that debt are kept.
+ * A purchase not paid in full keeps one payable debt in step with it (total − paid when bought). Payments
+ * made later go on that debt and are kept, so a debt that has been paid on is never removed.
  */
 async function syncPayable(purchaseId: string) {
   const p = await getPurchase(purchaseId)
   if (!p) return
-  const { data: existing } = await db().from("debts").select("id").eq("purchase_id", purchaseId).maybeSingle()
-  const owed = round2(p.total_usd - p.amount_paid_usd)
-  if (p.payment_status !== "debt" || owed <= 0) {
+  const { data: existing } = await db().from("debts").select("id, paid_usd").eq("purchase_id", purchaseId).maybeSingle()
+  // p.amount_paid_usd includes the debt's payments; the debt itself is what was left when bought
+  const owed = round2(p.total_usd - (p.amount_paid_usd - num(existing?.paid_usd)))
+  if (owed <= 0) {
     if (existing) must(await db().from("debts").delete().eq("id", existing.id))
     return
   }
   const values = {
     direction: "payable",
-    party: p.supplier?.name ?? "—",
-    supplier_id: p.supplier_id,
+    party: p.customer?.name ?? "—",
+    supplier_id: p.customer_id,
     purchase_id: p.id,
     amount_usd: owed,
     date: p.date,
+    due_date: p.due_date,
     notes: `Purchase #${String(p.number).padStart(4, "0")}`,
   }
   if (existing) must(await db().from("debts").update(values).eq("id", existing.id))
@@ -56,10 +48,15 @@ async function syncPayable(purchaseId: string) {
 
 async function savePurchaseAction(id: string | null, input: PurchaseInput): Promise<ActionResult<{ id: string; number: number }>> {
   try {
-    const { items, ...values } = PurchaseSchema.parse(input)
-    const total = round2(items.reduce((s, i) => s + i.qty * i.unit_cost_usd, 0))
-    // Paid in full: the amount paid is the total
-    const row_values = { ...values, amount_paid_usd: values.payment_status === "paid" ? total : Math.min(values.amount_paid_usd, total) }
+    const parsed = DocSchema.parse(input)
+    const { items: lines, customer_id, ...rest } = parsed
+    const m = settle(parsed)
+    // The form's "paid" counts payments already made on the purchase's debt; only the rest was paid when bought
+    const debtPaid = id ? num(must(await db().from("debts").select("paid_usd").eq("purchase_id", id).maybeSingle())?.paid_usd) : 0
+    const upfront = round6(Math.max(0, m.paid - debtPaid))
+    // Stored as the purchase's own columns: supplier, unit cost; "debt" while something is still owed
+    const row_values = { ...rest, supplier_id: customer_id, discount_usd: m.discount, amount_paid_usd: upfront, due_date: m.due_date, payment_status: m.fullyPaid ? "paid" : "debt" }
+    const items = lines.map((i) => ({ description: i.description, qty: i.qty, unit_cost_usd: i.unit_price_usd }))
     let row: { id: string; number: number }
     if (id) {
       row = must(await db().from("purchases").update(row_values).eq("id", id).select("id, number").single())
@@ -98,7 +95,7 @@ async function sendPurchaseToInventoryAction(id: string): Promise<ActionResult> 
             kind: "stock",
             name: i.description,
             qty: i.qty,
-            value_usd: round2(i.qty * i.unit_cost_usd),
+            value_usd: round2(i.total_usd),
             date: p.date,
             source_purchase_id: p.id,
           })),

@@ -8,5 +8,5 @@ export default async function EditInvoicePage({ params }: PageProps<"/invoices/[
   const { id } = await params
   const [invoice, customers, rate] = await Promise.all([getInvoice(id), listParties("customers", { all: true }), getRate()])
   if (!invoice) notFound()
-  return <InvoiceForm invoice={invoice} customers={customers} number={invoice.number} liveRate={rate?.rate ?? null} />
+  return <InvoiceForm invoice={invoice} parties={customers} number={invoice.number} liveRate={rate?.rate ?? null} />
 }

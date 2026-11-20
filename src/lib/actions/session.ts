@@ -1,13 +1,12 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { cookies, headers } from "next/headers"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { z } from "zod"
 import { getT } from "@/i18n/server"
 import { getSession, IS_DEMO } from "@/lib/auth"
 import { db, must } from "@/lib/db"
-import { sendApprovalRequest } from "@/lib/mail"
 import { checkPassword, hashPassword } from "@/lib/passwords"
 import { COOKIE_PATH, SESSION_COOKIE } from "@/lib/session-cookie"
 import { DAY, signToken } from "@/lib/session-token"
@@ -27,7 +26,7 @@ export async function signInDemo() {
   redirect("/")
 }
 
-export type FormState = { error?: string; done?: boolean }
+export type FormState = { error?: string }
 
 /** Username (any case) + password. Only approved accounts get in. */
 export async function signIn(_: FormState, form: FormData): Promise<FormState> {
@@ -37,42 +36,9 @@ export async function signIn(_: FormState, form: FormData): Promise<FormState> {
   if (!username || !password) return { error: t("auth.fillAll") }
   const user = must(await db().from("users").select("id, username, password_hash, status, is_admin").ilike("username", username.replace(/[%_\\]/g, "\\$&")).maybeSingle())
   if (!user || !(await checkPassword(password, user.password_hash))) return { error: t("auth.wrong") }
-  if (user.status === "pending") return { error: t("auth.pending") }
   if (user.status !== "approved") return { error: t("auth.rejected") }
   await startSession(user.id, user.username, user.is_admin)
   redirect("/")
-}
-
-const SignUp = z.object({
-  email: z.string().trim().email(),
-  username: z.string().trim().regex(/^[A-Za-z0-9_.-]{3,30}$/),
-  password: z.string().min(8),
-})
-
-/** Creates a pending account and emails the admin a link to approve it. */
-export async function signUp(_: FormState, form: FormData): Promise<FormState> {
-  const t = await getT()
-  const parsed = SignUp.safeParse({ email: form.get("email"), username: form.get("username"), password: form.get("password") })
-  if (!parsed.success) {
-    const field = parsed.error.issues[0].path[0]
-    return { error: t(field === "email" ? "auth.badEmail" : field === "username" ? "auth.badUsername" : "auth.shortPassword") }
-  }
-  const { email, username, password } = parsed.data
-  // The admin's own sign-up (ADMIN_EMAIL) is approved straight away and can approve everyone else
-  const isAdmin = !!process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase()
-  const res = await db()
-    .from("users")
-    .insert({ email, username, password_hash: await hashPassword(password), status: isAdmin ? "approved" : "pending", is_admin: isAdmin })
-    .select("id")
-    .single()
-  if (res.error) return { error: t(res.error.code === "23505" ? "auth.taken" : "auth.failed") }
-  if (!isAdmin) {
-    const token = await signToken({ kind: "approve", uid: res.data.id, exp: Date.now() + 14 * DAY })
-    const h = await headers()
-    const origin = process.env.APP_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}`
-    await sendApprovalRequest({ username, email, approveUrl: `${origin}/approve?token=${encodeURIComponent(token)}` }).catch(() => false)
-  }
-  return { done: true }
 }
 
 export async function signOut() {
@@ -80,12 +46,62 @@ export async function signOut() {
   redirect("/login")
 }
 
-/** Admins only: approve or block an account from the Accounts page. */
-export async function setAccountStatus(id: string, status: "approved" | "rejected"): Promise<ActionResult> {
+// ---- Accounts (admins only, from the Accounts page). Nobody can sign up: the admin makes every account. ----
+
+async function asAdmin<T>(work: (me: { userId: string }) => Promise<T>): Promise<ActionResult> {
   const me = await getSession()
   if (!me?.admin) return { ok: false, error: "Only an admin can do this." }
-  if (id === me.userId) return { ok: false, error: "You can't change your own account." }
-  must(await db().from("users").update({ status }).eq("id", id))
-  revalidatePath("/accounts")
-  return { ok: true }
+  try {
+    await work(me)
+    revalidatePath("/accounts")
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+const Username = z.string().trim().regex(/^[A-Za-z0-9_.-]{3,30}$/)
+const Password = z.string().min(8)
+
+export async function createAccount(input: { username: string; password: string; admin: boolean }): Promise<ActionResult> {
+  const t = await getT()
+  return asAdmin(async () => {
+    const username = Username.safeParse(input.username)
+    if (!username.success) throw new Error(t("auth.badUsername"))
+    if (!Password.safeParse(input.password).success) throw new Error(t("auth.shortPassword"))
+    const res = await db()
+      .from("users")
+      .insert({ username: username.data, password_hash: await hashPassword(input.password), status: "approved", is_admin: !!input.admin })
+    if (res.error) throw new Error(t(res.error.code === "23505" ? "auth.taken" : "auth.failed"))
+  })
+}
+
+export async function setAccountPassword(id: string, password: string): Promise<ActionResult> {
+  const t = await getT()
+  return asAdmin(async () => {
+    if (!Password.safeParse(password).success) throw new Error(t("auth.shortPassword"))
+    must(await db().from("users").update({ password_hash: await hashPassword(password) }).eq("id", id))
+  })
+}
+
+/** Block (they are signed out at once) or let back in. */
+export async function setAccountStatus(id: string, status: "approved" | "rejected"): Promise<ActionResult> {
+  return asAdmin(async (me) => {
+    if (id === me.userId) throw new Error("You can't block your own account.")
+    must(await db().from("users").update({ status }).eq("id", id))
+  })
+}
+
+export async function setAccountAdmin(id: string, admin: boolean): Promise<ActionResult> {
+  return asAdmin(async (me) => {
+    if (id === me.userId) throw new Error("You can't change your own admin rights.")
+    must(await db().from("users").update({ is_admin: admin }).eq("id", id))
+  })
+}
+
+export async function deleteAccount(id: string): Promise<ActionResult> {
+  return asAdmin(async (me) => {
+    if (id === me.userId) throw new Error("You can't delete your own account.")
+    must(await db().from("users").delete().eq("id", id))
+  })
 }

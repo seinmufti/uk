@@ -1,6 +1,6 @@
 "use client"
 
-import { PackagePlus, Printer } from "lucide-react"
+import { PackagePlus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/i18n/provider"
@@ -19,9 +19,6 @@ export function PurchaseActions({ id, sent }: { id: string; sent: boolean }) {
           <PackagePlus /> {t("purchases.sendToInventory")}
         </Button>
       )}
-      <Button variant="outline" onClick={() => window.print()}>
-        <Printer /> {t("common.print")}
-      </Button>
       <DeleteButton action={() => deletePurchase(id)} then={() => router.push("/purchases")} />
     </>
   )

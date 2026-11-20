@@ -27,6 +27,7 @@ export function ReceiptForm({
   open,
   numbers,
   liveRate,
+  preselect,
 }: {
   kind: ReceiptKind
   customers: Party[]
@@ -34,15 +35,18 @@ export function ReceiptForm({
   open: Record<ReceiptKind, OpenItem[]>
   numbers: Record<ReceiptKind, string>
   liveRate: number | null
+  /** "invoice:<id>" or "debt:<id>": what the receipt pays, chosen up front */
+  preselect?: string
 }) {
   const { t } = useI18n()
   const router = useRouter()
   const { pending, run } = useAction()
   const [kind, setKind] = useState<ReceiptKind>(initialKind)
   const [parties, setParties] = useState({ in: initialCustomers, out: initialSuppliers })
-  const [partyId, setPartyId] = useState(NONE)
-  const [forKey, setForKey] = useState(NONE) // "invoice:<id>" | "debt:<id>" | ""
-  const [amount, setAmount] = useState("")
+  const start = preselect ? open[initialKind].find((i) => `${i.type}:${i.id}` === preselect) : undefined
+  const [partyId, setPartyId] = useState(start ? ((initialKind === "in" ? start.customer_id : start.supplier_id) ?? NONE) : NONE)
+  const [forKey, setForKey] = useState(start ? preselect! : NONE) // "invoice:<id>" | "debt:<id>" | ""
+  const [amount, setAmount] = useState(start ? String(start.remaining) : "")
   const [date, setDate] = useState(today())
   const [rate, setRate] = useState(String(liveRate ?? ""))
   const [method, setMethod] = useState<ReceiptMethod>("cash")

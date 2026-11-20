@@ -1,12 +1,13 @@
 "use client"
 
-import { Check, Pencil, Plus, Undo2, Wand2 } from "lucide-react"
+import { Check, ListChecks, Pencil, Plus, Undo2, Wand2 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -22,12 +23,14 @@ import {
   generatePayroll,
   saveEmployee,
   setPayrollPaid,
-  updatePayroll,
+  deletePayrollItem,
+  savePayrollItem,
 } from "@/lib/actions/hr"
 import { formatDate, today } from "@/lib/dates"
-import type { Absence, Employee, Leave, PayrollRow } from "@/lib/data/types"
-import { num, plain, round2, usd } from "@/lib/money"
+import type { Absence, Employee, Leave, PayrollItem, PayrollRow } from "@/lib/data/types"
+import { num, plain, round2 } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { Amount } from "./amount"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { NumberInput } from "./number-input"
@@ -160,7 +163,7 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{e.position || "—"}</TableCell>
                 <TableCell className="hidden md:table-cell">{formatDate(e.start_date, locale)}</TableCell>
-                <TableCell className="text-end tabular-nums">{usd(e.base_salary_usd)}</TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={e.base_salary_usd} /></TableCell>
                 <TableCell onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon-sm" aria-label={t("common.edit")} onClick={() => editor.openEdit(e.id, employeeForm(e))}>
@@ -182,7 +185,7 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
                   {t("hr.totalSalaries")}
                 </TableCell>
                 <TableCell className="sm:hidden">{t("hr.totalSalaries")}</TableCell>
-                <TableCell className="text-end tabular-nums">{usd(payroll)}</TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={payroll} /></TableCell>
                 <TableCell />
               </TableRow>
             </TableFooter>
@@ -215,7 +218,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
             {[employee.position, employee.phone].filter(Boolean).join(" · ") || "—"}
           </div>
           <div className="mt-2 text-sm">
-            {t("hr.salary")}: <span className="font-medium tabular-nums">{usd(employee.base_salary_usd)}</span> · {t("hr.startDate")}: {formatDate(employee.start_date, locale)}
+            {t("hr.salary")}: <span className="font-medium tabular-nums"><Amount usd={employee.base_salary_usd} /></span> · {t("hr.startDate")}: {formatDate(employee.start_date, locale)}
           </div>
           {employee.notes && <p className="mt-2 text-sm text-muted-foreground">{employee.notes}</p>}
         </div>
@@ -359,34 +362,44 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
 
 // ---- Payroll ----
 
-function PayrollLine({ row }: { row: PayrollRow }) {
+type ItemForm = { kind: PayrollItem["kind"]; amount: string; reason: string }
+const blankItem = (): ItemForm => ({ kind: "bonus", amount: "", reason: "" })
+
+/** One employee's month: read-only totals; bonuses and deductions are added through a small form. */
+function PayrollLine({ row, onAdd, onOpen }: { row: PayrollRow; onAdd: () => void; onOpen: () => void }) {
   const { t, locale } = useI18n()
   const { pending, run } = useAction()
-  const [deductions, setDeductions] = useState(String(row.deductions_usd))
-  const [bonuses, setBonuses] = useState(String(row.bonuses_usd))
-  const net = round2(row.base_usd - num(deductions) + num(bonuses))
-  const dirty = num(deductions) !== row.deductions_usd || num(bonuses) !== row.bonuses_usd
-  const save = () => dirty && run(() => updatePayroll(row.id, { deductions_usd: num(deductions), bonuses_usd: num(bonuses) }))
-
+  const net = round2(row.base_usd - row.deductions_usd + row.bonuses_usd)
   return (
     <TableRow>
-      <TableCell className="font-medium">{row.employee_name}</TableCell>
-      <TableCell className="text-end tabular-nums">{usd(row.base_usd)}</TableCell>
-      <TableCell className="text-end">
-        <NumberInput  step="0.01" min="0" value={deductions} onChange={(e) => setDeductions(e.target.value)} onBlur={save} className="ms-auto w-24 text-end" />
+      <TableCell className="font-medium">
+        <button type="button" onClick={onOpen} className="text-start hover:underline">
+          {row.employee_name}
+        </button>
+        {row.items.length > 0 && <div className="text-xs font-normal text-muted-foreground">{t("hr.entries", { count: row.items.length })}</div>}
       </TableCell>
       <TableCell className="text-end">
-        <NumberInput  step="0.01" min="0" value={bonuses} onChange={(e) => setBonuses(e.target.value)} onBlur={save} className="ms-auto w-24 text-end" />
+        <Amount usd={row.base_usd} />
       </TableCell>
-      <TableCell className="text-end font-semibold tabular-nums">{usd(net)}</TableCell>
+      <TableCell className="text-end text-red-700 dark:text-red-400">{row.deductions_usd > 0 ? <Amount usd={row.deductions_usd} /> : "—"}</TableCell>
+      <TableCell className="text-end text-emerald-700 dark:text-emerald-400">{row.bonuses_usd > 0 ? <Amount usd={row.bonuses_usd} /> : "—"}</TableCell>
+      <TableCell className="text-end font-semibold">
+        <Amount usd={net} />
+      </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-1">
+          <Button size="icon-sm" variant="ghost" onClick={onAdd} title={t("hr.addAdjustment")} aria-label={t("hr.addAdjustment")}>
+            <Plus />
+          </Button>
+          <Button size="icon-sm" variant="ghost" onClick={onOpen} title={t("hr.editAdjustments")} aria-label={t("hr.editAdjustments")}>
+            <ListChecks />
+          </Button>
           {row.paid_at ? (
             <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, false))} title={t("hr.unpaid")}>
               <Undo2 /> <span className="text-emerald-700 dark:text-emerald-400">{t("hr.paidOn", { date: formatDate(row.paid_at, locale) })}</span>
             </Button>
           ) : (
-            <Button size="sm" variant="outline" disabled={pending || dirty} onClick={() => run(() => setPayrollPaid(row.id, true))}>
+            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, true))}>
               <Check /> {t("hr.markPaid")}
             </Button>
           )}
@@ -402,6 +415,19 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
   const router = useRouter()
   const { pending, run } = useAction()
   const total = rows.reduce((s, r) => s + r.base_usd - r.deductions_usd + r.bonuses_usd, 0)
+  // The small bonus / deduction form: for which row, and which entry when changing one
+  const [editing, setEditing] = useState<{ rowId: string; itemId: string | null } | null>(null)
+  const [form, setForm] = useState<ItemForm>(blankItem)
+  // The list of one row's entries
+  const [listFor, setListFor] = useState<string | null>(null)
+  const listed = rows.find((r) => r.id === listFor)
+  const editingRow = rows.find((r) => r.id === editing?.rowId)
+
+  const openItem = (rowId: string, item?: PayrollItem) => {
+    setForm(item ? { kind: item.kind, amount: String(item.amount_usd), reason: item.reason ?? "" } : blankItem())
+    setEditing({ rowId, itemId: item?.id ?? null })
+  }
+
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-end gap-3">
@@ -422,7 +448,7 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
               <TableHead className="text-end">{t("hr.deductions")}</TableHead>
               <TableHead className="text-end">{t("hr.bonuses")}</TableHead>
               <TableHead className="text-end">{t("hr.net")}</TableHead>
-              <TableHead className="w-44" />
+              <TableHead className="w-56" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -434,20 +460,91 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
               </TableRow>
             )}
             {rows.map((row) => (
-              <PayrollLine key={`${row.id}-${row.deductions_usd}-${row.bonuses_usd}`} row={row} />
+              <PayrollLine key={row.id} row={row} onAdd={() => openItem(row.id)} onOpen={() => setListFor(row.id)} />
             ))}
           </TableBody>
           {rows.length > 0 && (
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={4}>{t("hr.totalNet")}</TableCell>
-                <TableCell className="text-end font-semibold tabular-nums">{usd(total)}</TableCell>
+                <TableCell className="text-end font-semibold">
+                  <Amount usd={total} />
+                </TableCell>
                 <TableCell />
               </TableRow>
             </TableFooter>
           )}
         </Table>
       </div>
+
+      {/* Add or change one bonus / deduction */}
+      <FormDialog
+        title={`${t(editing?.itemId ? "hr.editAdjustment" : "hr.addAdjustment")}${editingRow ? ` · ${editingRow.employee_name}` : ""}`}
+        open={!!editing}
+        onOpenChange={(open) => !open && setEditing(null)}
+        pending={pending}
+        onSubmit={() =>
+          editing &&
+          run(() => savePayrollItem(editing.rowId, editing.itemId, { kind: form.kind, amount_usd: num(form.amount), reason: form.reason || null }), {
+            success: t("common.saved"),
+            then: () => setEditing(null),
+          })
+        }
+      >
+        <div className="inline-flex w-fit rounded-lg border bg-card p-[3px] text-sm" role="radiogroup">
+          {(["bonus", "deduction"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={form.kind === k}
+              onClick={() => setForm({ ...form, kind: k })}
+              className={cn("rounded-md px-3 py-1 font-medium", form.kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+            >
+              {t(k === "bonus" ? "hr.bonus" : "hr.deduction")}
+            </button>
+          ))}
+        </div>
+        <Field label={`${t("common.amount")} (USD)`}>
+          <NumberInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required autoFocus placeholder="0.00" />
+        </Field>
+        <Field label={t("hr.reason")}>
+          <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t(form.kind === "bonus" ? "hr.reasonBonus" : "hr.reasonDeduction")} />
+        </Field>
+      </FormDialog>
+
+      {/* Everything added for one employee this month, to change or remove */}
+      <Dialog open={!!listed} onOpenChange={(open) => !open && setListFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{`${t("hr.editAdjustments")}${listed ? ` · ${listed.employee_name}` : ""}`}</DialogTitle>
+          </DialogHeader>
+        {listed && (
+          <div className="grid gap-2">
+            {listed.items.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">{t("hr.noAdjustments")}</p>}
+            {listed.items.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <div className={item.kind === "bonus" ? "font-medium text-emerald-700 dark:text-emerald-400" : "font-medium text-red-700 dark:text-red-400"}>
+                    {t(item.kind === "bonus" ? "hr.bonus" : "hr.deduction")} · <Amount usd={item.amount_usd} inline />
+                  </div>
+                  {item.reason && <div className="truncate text-xs text-muted-foreground">{item.reason}</div>}
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label={t("common.edit")} onClick={() => (setListFor(null), openItem(listed.id, item))}>
+                    <Pencil />
+                  </Button>
+                  <DeleteButton action={() => deletePayrollItem(item.id)} />
+                </div>
+              </div>
+            ))}
+            <Button type="button" variant="outline" onClick={() => (setListFor(null), openItem(listed.id))}>
+              <Plus /> {t("hr.addAdjustment")}
+            </Button>
+          </div>
+        )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -24,14 +24,15 @@ export async function getEmployee(id: string): Promise<{ employee: Employee; lea
 }
 
 export async function listPayroll(month: string): Promise<PayrollRow[]> {
-  const rows = must(await db().from("payroll").select("*, employees(name)").eq("month", month)) as (Record<string, unknown> & { employees: { name: string } | null })[]
+  const rows = must(await db().from("payroll").select("*, employees(name), payroll_items(id, kind, amount_usd, reason, created_at)").eq("month", month)) as (Record<string, unknown> & { employees: { name: string } | null; payroll_items: { id: string; kind: "bonus" | "deduction"; amount_usd: string; reason: string | null; created_at: string }[] })[]
   return rows
-    .map(({ employees, ...r }) => ({
+    .map(({ employees, payroll_items, ...r }) => ({
       ...(r as unknown as PayrollRow),
       employee_name: employees?.name ?? "—",
       base_usd: num(r.base_usd),
       deductions_usd: num(r.deductions_usd),
       bonuses_usd: num(r.bonuses_usd),
+      items: [...payroll_items].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((i) => ({ id: i.id, kind: i.kind, amount_usd: num(i.amount_usd), reason: i.reason })),
     }))
     .sort((a, b) => a.employee_name.localeCompare(b.employee_name))
 }

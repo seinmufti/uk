@@ -1,6 +1,7 @@
 "use client"
 
 import { Banknote, Pencil, Plus } from "lucide-react"
+import { Amount } from "@/components/amount"
 import Link from "next/link"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
@@ -62,7 +63,7 @@ export function DebtsView({
               {t(`debts.direction.${d}`)} · {t("debts.outstanding")}
             </div>
             <div className={d === "receivable" ? "text-lg font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums" : "text-lg font-semibold text-red-700 dark:text-red-400 tabular-nums"}>
-              {usd(totals[d])}
+              <Amount usd={totals[d]} />
             </div>
           </Link>
         ))}
@@ -109,10 +110,10 @@ export function DebtsView({
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{formatDate(debt.date, locale)}</TableCell>
                   <TableCell className="hidden md:table-cell">{formatDate(debt.due_date, locale)}</TableCell>
-                  <TableCell className="text-end tabular-nums">{usd(debt.amount_usd)}</TableCell>
-                  <TableCell className="hidden text-end tabular-nums sm:table-cell">{usd(debt.paid_usd)}</TableCell>
+                  <TableCell className="text-end tabular-nums"><Amount usd={debt.amount_usd} /></TableCell>
+                  <TableCell className="hidden text-end tabular-nums sm:table-cell"><Amount usd={debt.paid_usd} /></TableCell>
                   <TableCell className="text-end tabular-nums">
-                    {left <= 0 ? <Badge variant="secondary">{t("debts.settled")}</Badge> : <span className="font-medium">{usd(left)}</span>}
+                    {left <= 0 ? <Badge variant="secondary">{t("debts.settled")}</Badge> : <span className="font-medium"><Amount usd={left} /></span>}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
@@ -166,6 +167,12 @@ export function DebtsView({
               <Link key={inv.id} href={`/invoices/${inv.id}`} className="flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-muted/50">
                 <span>
                   <span className="font-mono">#{docNumber(inv.number)}</span> · {inv.customer_name ?? t("invoices.noCustomer")}
+                  {inv.due_date && (
+                    <span className={inv.due_date < today() ? "block text-xs font-medium text-red-700 dark:text-red-400" : "block text-xs text-muted-foreground"}>
+                      {t("invoices.dueDate")}: {formatDate(inv.due_date, locale)}
+                      {inv.due_date < today() && ` · ${t("invoices.overdue")}`}
+                    </span>
+                  )}
                 </span>
                 {/* What is still owed, in the invoice's own currency; the full total and what was paid underneath */}
                 <span className="text-end tabular-nums">

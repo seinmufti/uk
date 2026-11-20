@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { saveInvoice } from "@/lib/actions/invoices"
+import { savePurchase } from "@/lib/actions/purchases"
 import { today } from "@/lib/dates"
 import { randomDemoInvoice } from "@/lib/demo-invoices"
-import type { CurrencyMode, Invoice, Party } from "@/lib/data/types"
+import type { CurrencyMode, DocKind, Invoice, Party } from "@/lib/data/types"
 import { docNumber, iqd, iqdToUsd, num, round2, round6, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { AREA, Field, NativeSelect } from "./form-bits"
@@ -27,18 +28,28 @@ const IS_DEMO = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").endsWith("/demo")
 
 const blankRow = (): Row => ({ key: nextKey++, description: "", qty: "1", cost: "" })
 
+// The words that differ between a sales invoice (to a customer) and a purchase invoice (from a supplier)
+const WORDS = {
+  sale: { party: "invoices.customer", noParty: "invoices.noCustomer", newParty: "invoices.newCustomer", new: "invoices.new", edit: "invoices.edit", created: "invoices.created", table: "customers", base: "/invoices" },
+  purchase: { party: "purchases.supplier", noParty: "purchases.noSupplier", newParty: "purchases.newSupplier", new: "purchases.new", edit: "purchases.edit", created: "purchases.created", table: "suppliers", base: "/purchases" },
+} as const
+
+/** The form for sales and purchase invoices alike: currencies, lines, discount, payment, due date. */
 export function InvoiceForm({
-  customers: initialCustomers,
+  kind = "sale",
+  parties: initialCustomers,
   invoice,
   number,
   liveRate,
 }: {
-  customers: Party[]
+  kind?: DocKind
+  parties: Party[]
   invoice?: Invoice | null
   number: number
   liveRate: number | null
 }) {
   const { t } = useI18n()
+  const W = WORDS[kind]
   const router = useRouter()
   const { pending, run } = useAction()
   const [customers, setCustomers] = useState(initialCustomers)
@@ -64,6 +75,7 @@ export function InvoiceForm({
       : "",
   )
   // Discount off the lines, typed in the lines' currency (IQD in IQD mode, else USD)
+  const [dueDate, setDueDate] = useState(invoice?.due_date ?? "")
   const [discountText, setDiscountText] = useState(
     invoice?.discount_usd ? String(invoice.currency_mode === "iqd" ? Math.round(usdToIqd(invoice.discount_usd, invoice.rate_per_100)) : round2(invoice.discount_usd)) : "",
   )
@@ -81,6 +93,9 @@ export function InvoiceForm({
   const paidLines = payment === "full" ? netLines : payment === "none" ? 0 : Math.min(num(paidText), netLines)
   const dueLines = Math.max(0, netLines - paidLines)
   const coversTotal = payment === "part" && netLines > 0 && num(paidText) >= netLines
+  // The same amount in the other currency (shown small next to amounts typed in one)
+  const other = (n: number) => (!num(rate) ? "" : inIqd ? usd(iqdToUsd(n, num(rate))) : iqd(usdToIqd(n, num(rate))))
+  const owesSomething = payment !== "full" && !coversTotal
   const paidBox = useRef<HTMLDivElement>(null)
 
   // Switching to or from IQD converts the typed costs, so the invoice keeps its value
@@ -111,23 +126,25 @@ export function InvoiceForm({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
+    const save = kind === "sale" ? saveInvoice : savePurchase
     run(
       () =>
-        saveInvoice(invoice?.id ?? null, {
+        save(invoice?.id ?? null, {
           date,
           customer_id: customerId || null,
           rate_per_100: num(rate),
           currency_mode: mode,
           discount_usd: inIqd ? round6(iqdToUsd(discountLines, num(rate))) : discountLines,
           amount_paid_usd: payment === "full" ? totalUsd : inIqd ? round6(iqdToUsd(paidLines, num(rate))) : paidLines,
+          due_date: owesSomething ? dueDate || null : null,
           notes: notes || null,
           items: rows.map((r) => ({ description: r.description, qty: num(r.qty), unit_price_usd: inIqd ? round6(iqdToUsd(num(r.cost), num(rate))) : num(r.cost) })),
         }),
       {
         success: invoice ? t("common.saved") : undefined,
         then: (saved) => {
-          if (!invoice) toast.success(t("invoices.created", { number: docNumber(saved.number) }))
-          router.push(`/invoices/${saved.id}`)
+          if (!invoice) toast.success(t(W.created, { number: docNumber(saved.number) }))
+          router.push(`${W.base}/${saved.id}`)
         },
       },
     )
@@ -136,13 +153,13 @@ export function InvoiceForm({
   return (
     <form onSubmit={submit} className="mx-auto grid max-w-3xl gap-6 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{invoice ? t("invoices.edit") : t("invoices.new")}</h2>
+        <h2 className="text-lg font-semibold">{invoice ? t(W.edit) : t(W.new)}</h2>
         <span className="rounded-md bg-muted px-2 py-1 font-mono text-sm tabular-nums">#{docNumber(invoice?.number ?? number)}</span>
       </div>
 
       <div className="relative flex justify-center">
         <CurrencyToggle value={mode} onChange={changeMode} />
-        {IS_DEMO && (
+        {IS_DEMO && kind === "sale" && (
           // Demo only: fills the form with a random sample invoice
           <Button type="button" variant="outline" size="icon" onClick={fillDemo} title={t("invoices.sampleData")} aria-label={t("invoices.sampleData")} className="absolute end-0 top-1/2 -translate-y-1/2">
             <FlaskConical />
@@ -151,17 +168,17 @@ export function InvoiceForm({
       </div>
 
       <div className={cn("grid gap-4 sm:grid-cols-2", AREA.party)}>
-        <Field label={t("invoices.customer")}>
+        <Field label={t(W.party)}>
           <div className="flex gap-2">
             <NativeSelect value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-              <option value="">{t("invoices.noCustomer")}</option>
+              <option value="">{t(W.noParty)}</option>
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </NativeSelect>
-            <Button type="button" variant="outline" size="icon" onClick={() => setNewCustomer(true)} aria-label={t("invoices.newCustomer")} title={t("invoices.newCustomer")}>
+            <Button type="button" variant="outline" size="icon" onClick={() => setNewCustomer(true)} aria-label={t(W.newParty)} title={t(W.newParty)}>
               <UserPlus />
             </Button>
           </div>
@@ -197,7 +214,10 @@ export function InvoiceForm({
                 aria-label={t("invoices.cost")}
                 className="text-end tabular-nums"
               />
-              <span className="pe-1 text-end text-sm font-medium tabular-nums">{money(lineTotal(row))}</span>
+              <span className="flex flex-col items-end pe-1 text-end text-sm font-medium tabular-nums">
+                {money(lineTotal(row))}
+                {mode === "usd_iqd" && lineTotal(row) > 0 && <span className="text-xs font-normal text-muted-foreground">{other(lineTotal(row))}</span>}
+              </span>
               <Button
                 type="button"
                 variant="ghost"
@@ -216,7 +236,10 @@ export function InvoiceForm({
             </Button>
             <div className="flex items-center gap-4 pe-10 text-sm">
               <span className="text-muted-foreground">{t("invoices.grandTotal")}</span>
-              <span className="font-semibold tabular-nums">{money(linesTotal)}</span>
+              <span className="flex flex-col items-end font-semibold tabular-nums">
+                {money(linesTotal)}
+                {mode === "usd_iqd" && linesTotal > 0 && <span className="text-xs font-normal text-muted-foreground">{other(linesTotal)}</span>}
+              </span>
             </div>
           </div>
         </div>
@@ -257,7 +280,11 @@ export function InvoiceForm({
           <span className="font-medium">
             {t(mode === "usd" ? (discountLines > 0 ? "invoices.afterDiscountUsd" : "invoices.totalUsd") : discountLines > 0 ? "invoices.afterDiscountIqd" : "invoices.totalIqd")}
           </span>
-          <span className={cn("text-lg font-semibold tabular-nums", AREA.total)}>{mode === "usd" ? usd(totalUsd) : iqd(totalIqd)}</span>
+          <span className={cn("flex flex-col items-end text-lg font-semibold tabular-nums", AREA.total)}>
+            {mode === "usd" ? usd(totalUsd) : iqd(totalIqd)}
+            {/* The other currency too (USD → IQD already shows the USD total above) */}
+            {mode !== "usd_iqd" && netLines > 0 && other(netLines) && <span className="text-xs font-normal text-muted-foreground">{other(netLines)}</span>}
+          </span>
         </div>
       </div>
 
@@ -291,10 +318,30 @@ export function InvoiceForm({
             />
           </div>
         </div>
+        {paidLines > 0 && (
+          // What was paid, in both currencies
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{t("invoices.paidAmount")}</span>
+            <span className="flex flex-col items-end font-medium tabular-nums">
+              {money(paidLines)}
+              {other(paidLines) && <span className="text-xs font-normal text-muted-foreground">{other(paidLines)}</span>}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between border-t pt-3 text-sm">
           <span className="text-muted-foreground">{t("invoices.balanceDue")}</span>
-          <span className={cn("font-semibold tabular-nums", dueLines > 0 ? "text-amber-700 dark:text-amber-400" : AREA.total)}>{money(dueLines)}</span>
+          <span className={cn("flex flex-col items-end font-semibold tabular-nums", dueLines > 0 ? "text-amber-700 dark:text-amber-400" : AREA.total)}>
+            {money(dueLines)}
+            {dueLines > 0 && other(dueLines) && <span className="text-xs font-normal text-muted-foreground">{other(dueLines)}</span>}
+          </span>
         </div>
+        {owesSomething && (
+          // When the rest has to be paid by
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span className="text-muted-foreground">{t("invoices.dueDate")}</span>
+            <Input type="date" value={dueDate} min={date} onChange={(e) => setDueDate(e.target.value)} className="w-44" />
+          </div>
+        )}
       </div>
 
       <Field label={t("common.notes")}>
@@ -311,7 +358,7 @@ export function InvoiceForm({
       </div>
 
       <PartyDialog
-        table="customers"
+        table={W.table}
         open={newCustomer}
         onOpenChange={setNewCustomer}
         onSaved={(c) => {

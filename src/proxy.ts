@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { featureOf, isEnabled } from "@/lib/features"
 import { SESSION_COOKIE } from "@/lib/session-cookie"
+import { activeAccount } from "@/lib/account-check"
 import { verifyToken } from "@/lib/session-token"
 
-// Pages anyone may post to (signing in, asking for an account, approving one from the email link)
-const OPEN = ["/login", "/signup", "/approve"]
+// The only page anyone may post to: signing in
+const OPEN = ["/login"]
 
 /**
  * Pages send signed-out people to /login themselves (the (app) layout), because Next's redirect() writes a
@@ -22,8 +23,10 @@ export async function proxy(request: NextRequest) {
   const feature = featureOf(path)
   if (feature && !isEnabled(feature)) return new NextResponse("Not found", { status: 404 })
   if (request.method === "GET" || request.method === "HEAD" || OPEN.includes(path)) return NextResponse.next()
-  // Writes need a genuine (signed) sign-in cookie
-  if (!(await verifyToken(request.cookies.get(SESSION_COOKIE)?.value, "session"))) return new NextResponse(null, { status: 401 })
+  // Writes need a genuine (signed) sign-in cookie of an account that is still allowed in
+  const session = await verifyToken(request.cookies.get(SESSION_COOKIE)?.value, "session")
+  const allowed = session && (session.uid === "demo" ? base.endsWith("/demo") : await activeAccount(session.uid))
+  if (!allowed) return new NextResponse(null, { status: 401 })
   return NextResponse.next()
 }
 

@@ -106,7 +106,8 @@ function FitPage({ children }: { children: React.ReactNode }) {
         onClick={() => zoom === 1 && setZoom(2)}
         ref={scroller}
       >
-        <div style={{ width: PAGE_W * scale, height: PAGE_H * scale }} className="m-auto shrink-0">
+        {/* Left-to-right box: in Arabic / Kurdish the oversized page would otherwise overflow to the left and sit off-centre (the sheet sets its own direction) */}
+        <div dir="ltr" style={{ width: PAGE_W * scale, height: PAGE_H * scale }} className="m-auto shrink-0">
           <div
             style={{ width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: "top left" }}
             className="overflow-hidden rounded-sm bg-white shadow-lg"

@@ -23,26 +23,20 @@ export type Invoice = {
   discount_usd: number
   /** What the customer owes in all: subtotal minus discount */
   total_usd: number
+  /** When the rest is due (only while not paid in full) */
+  due_date: string | null
 }
-export type InvoiceRow = Pick<Invoice, "id" | "number" | "date" | "status" | "total_usd" | "customer_id" | "currency_mode" | "rate_per_100" | "amount_paid_usd"> & { customer_name: string | null }
+export type InvoiceRow = Pick<Invoice, "id" | "number" | "date" | "status" | "total_usd" | "customer_id" | "currency_mode" | "rate_per_100" | "amount_paid_usd" | "due_date"> & { customer_name: string | null }
 
-export type PurchaseItem = { id?: string; description: string; qty: number; unit_cost_usd: number }
-export type Purchase = {
-  id: string
-  number: number
-  date: string
-  supplier_id: string | null
-  supplier: Party | null
-  payment_status: "paid" | "debt"
-  amount_paid_usd: number
-  sent_to_inventory: boolean
-  notes: string | null
-  items: PurchaseItem[]
-  total_usd: number
-}
-export type PurchaseRow = Pick<Purchase, "id" | "number" | "date" | "payment_status" | "sent_to_inventory" | "total_usd"> & {
-  supplier_name: string | null
-}
+/** Sales invoices (to customers) and purchase invoices (from suppliers) share one form and one layout. */
+export type DocKind = "sale" | "purchase"
+
+/**
+ * A purchase invoice, in the same shape as a sales invoice so both use the same form and page:
+ * customer / customer_id hold the supplier, and unit_price_usd the unit cost.
+ */
+export type Purchase = Invoice & { sent_to_inventory: boolean }
+export type PurchaseRow = InvoiceRow & { sent_to_inventory: boolean }
 
 export const INVENTORY_KINDS = ["asset", "stock", "capital"] as const
 export type InventoryKind = (typeof INVENTORY_KINDS)[number]
@@ -104,7 +98,10 @@ export type PayrollRow = {
   bonuses_usd: number
   paid_at: string | null
   notes: string | null
+  /** The bonuses and deductions that make up bonuses_usd / deductions_usd */
+  items: PayrollItem[]
 }
+export type PayrollItem = { id: string; kind: "bonus" | "deduction"; amount_usd: number; reason: string | null }
 
 export type ReceiptKind = "in" | "out"
 export const RECEIPT_METHODS = ["cash", "bank", "other"] as const

@@ -5,5 +5,5 @@ import { getRate } from "@/lib/rate"
 
 export default async function NewInvoicePage() {
   const [customers, number, rate] = await Promise.all([listParties("customers"), nextInvoiceNumber(), getRate()])
-  return <InvoiceForm customers={customers} number={number} liveRate={rate?.rate ?? null} />
+  return <InvoiceForm parties={customers} number={number} liveRate={rate?.rate ?? null} />
 }

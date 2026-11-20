@@ -1,6 +1,7 @@
 "use client"
 
 import { Pencil, Plus } from "lucide-react"
+import { Amount } from "@/components/amount"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +11,7 @@ import { useI18n } from "@/i18n/provider"
 import { deleteInventoryItem, saveInventoryItem } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
 import { INVENTORY_KINDS, type InventoryItem, type InventoryKind } from "@/lib/data/types"
-import { num, plain, usd } from "@/lib/money"
+import { num, plain } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { NumberInput } from "./number-input"
@@ -43,7 +44,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
         {INVENTORY_KINDS.map((k) => (
           <Link key={k} href={`/inventory?tab=${k}`} className="rounded-lg border p-3 transition-colors hover:bg-muted/50">
             <div className="text-xs text-muted-foreground">{t(`inventory.kind.${k}`)}</div>
-            <div className="text-lg font-semibold tabular-nums">{usd(totals[k])}</div>
+            <div className="text-lg font-semibold tabular-nums"><Amount usd={totals[k]} /></div>
           </Link>
         ))}
       </div>
@@ -72,7 +73,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="text-end tabular-nums">{plain(item.qty, 3)}</TableCell>
-                <TableCell className="text-end tabular-nums">{usd(item.value_usd)}</TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={item.value_usd} /></TableCell>
                 <TableCell className="hidden sm:table-cell">{formatDate(item.date, locale)}</TableCell>
                 <TableCell className="hidden max-w-64 truncate text-muted-foreground md:table-cell">
                   {item.source_purchase_id ? (
@@ -105,7 +106,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={2}>{t("inventory.totalValue")}</TableCell>
-                <TableCell className="text-end font-semibold tabular-nums">{usd(total)}</TableCell>
+                <TableCell className="text-end font-semibold tabular-nums"><Amount usd={total} /></TableCell>
                 <TableCell colSpan={3} />
               </TableRow>
             </TableFooter>

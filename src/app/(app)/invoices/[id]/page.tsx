@@ -1,17 +1,19 @@
 import { ArrowLeft, Pencil } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { DocPayments } from "@/components/doc-payments"
 import { InvoiceActions } from "@/components/invoice-actions"
 import { InvoiceDocument, InvoicePaper } from "@/components/invoice-document"
 import { PrintDialog } from "@/components/print-dialog"
 import { buttonVariants } from "@/components/ui/button"
 import { getLocale, getT } from "@/i18n/server"
 import { getInvoice } from "@/lib/data/invoices"
+import { receiptsFor } from "@/lib/data/receipts"
 import { cn } from "@/lib/utils"
 
 export default async function InvoicePage({ params }: PageProps<"/invoices/[id]">) {
   const { id } = await params
-  const [t, locale, invoice] = await Promise.all([getT(), getLocale(), getInvoice(id)])
+  const [t, locale, invoice, receipts] = await Promise.all([getT(), getLocale(), getInvoice(id), receiptsFor({ invoiceId: id })])
   if (!invoice) notFound()
 
   return (
@@ -30,6 +32,8 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
       </div>
 
       <InvoiceDocument invoice={invoice} t={t} locale={locale} />
+      {/* Money received against this invoice; a new receipt opens already pointed at it */}
+      <DocPayments receipts={receipts} recordHref={invoice.status === "paid" ? null : `/receipts/new?kind=in&invoice=${id}`} />
     </div>
   )
 }

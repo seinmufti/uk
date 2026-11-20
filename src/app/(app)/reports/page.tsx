@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Amount } from "@/components/amount"
 import Link from "next/link"
 import { IncomeChart } from "@/components/income-chart"
 import { LinkTabs } from "@/components/link-tabs"
@@ -26,7 +27,7 @@ function Line({ label, value, strong, indent }: { label: string; value: number; 
   return (
     <div className={cn("flex justify-between gap-4 py-1 text-sm", strong && "border-t pt-2 font-semibold", indent && "ps-3")}>
       <span className={strong ? "" : "text-muted-foreground"}>{label}</span>
-      <span className="tabular-nums">{usd(value)}</span>
+      <span className="tabular-nums"><Amount usd={value} /></span>
     </div>
   )
 }
@@ -80,7 +81,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
               <div key={c.category} className="grid gap-1">
                 <div className="flex justify-between text-sm">
                   <span>{t.dynamic(`expenses.categories.${c.category}`, c.category)}</span>
-                  <span className="tabular-nums">{usd(c.amount)}</span>
+                  <span className="tabular-nums"><Amount usd={c.amount} /></span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full bg-[#eb6834]" style={{ width: `${(c.amount / report.expenses) * 100}%` }} />
@@ -125,7 +126,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
             <div className="mt-2 flex items-baseline justify-between border-t pt-3">
               <span className="font-medium">{t("reports.zakatDue", { percent: report.zakat.percent })}</span>
               <span className="text-end">
-                <span className="block text-xl font-semibold text-emerald-800 dark:text-emerald-400 tabular-nums">{usd(report.zakat.due)}</span>
+                <span className="block text-xl font-semibold text-emerald-800 dark:text-emerald-400 tabular-nums"><Amount usd={report.zakat.due} /></span>
                 {inIqd(report.zakat.due) && <span className="text-xs text-muted-foreground tabular-nums">{inIqd(report.zakat.due)}</span>}
               </span>
             </div>
