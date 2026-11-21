@@ -54,7 +54,30 @@ export function PrintDialog({ sheets }: { sheets: Record<Locale, React.ReactNode
           <FitPage>{sheets[lang]}</FitPage>
         </DialogContent>
       </Dialog>
-      {open && createPortal(<div className="print-root hidden print:block">{sheets[lang]}</div>, document.body)}
+      {open &&
+        createPortal(
+          // The empty header and footer rows repeat on every printed page: a 12mm top and bottom margin
+          <div className="print-root hidden print:block">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <td className="h-[12mm] p-0" />
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-0">{sheets[lang]}</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td className="h-[12mm] p-0" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>,
+          document.body,
+        )}
     </>
   )
 }

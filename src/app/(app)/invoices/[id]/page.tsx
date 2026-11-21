@@ -5,6 +5,8 @@ import { DocPayments } from "@/components/doc-payments"
 import { InvoiceActions } from "@/components/invoice-actions"
 import { InvoiceDocument, InvoicePaper } from "@/components/invoice-document"
 import { PrintDialog } from "@/components/print-dialog"
+import { WhatsAppButton } from "@/components/whatsapp-button"
+import { docNumber } from "@/lib/money"
 import { buttonVariants } from "@/components/ui/button"
 import { getLocale, getT } from "@/i18n/server"
 import { getInvoice } from "@/lib/data/invoices"
@@ -28,6 +30,7 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
           </Link>
           <InvoiceActions id={id} status={invoice.status} />
           <PrintDialog sheets={{ en: <InvoicePaper invoice={invoice} lang="en" />, ar: <InvoicePaper invoice={invoice} lang="ar" />, ckb: <InvoicePaper invoice={invoice} lang="ckb" /> }} />
+          <WhatsAppButton sheet={<InvoicePaper invoice={invoice} lang={locale} />} phone={invoice.customer?.phone ?? null} name={`invoice-${docNumber(invoice.number)}`} />
         </div>
       </div>
 

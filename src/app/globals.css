@@ -181,10 +181,11 @@ select option {
     background: white;
     padding: 0;
   }
-  /* Like the A4 page in the preview: the same 12mm margin on every side of every page, colours printed */
+  /* No page margin, so the browser prints no link, date, title or page number around the sheet; the sheet
+     keeps 12mm on every side of every page itself (see .print-root in print-dialog.tsx), colours printed */
   @page {
     size: A4;
-    margin: 12mm;
+    margin: 0;
   }
   .print-root .paper {
     width: auto;

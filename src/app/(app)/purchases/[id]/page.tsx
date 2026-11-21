@@ -4,6 +4,8 @@ import { notFound } from "next/navigation"
 import { DocPayments } from "@/components/doc-payments"
 import { InvoiceDocument, InvoicePaper } from "@/components/invoice-document"
 import { PrintDialog } from "@/components/print-dialog"
+import { WhatsAppButton } from "@/components/whatsapp-button"
+import { docNumber } from "@/lib/money"
 import { PurchaseActions } from "@/components/purchase-actions"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
@@ -37,6 +39,7 @@ export default async function PurchasePage({ params }: PageProps<"/purchases/[id
               ckb: <InvoicePaper invoice={p} lang="ckb" kind="purchase" />,
             }}
           />
+          <WhatsAppButton sheet={<InvoicePaper invoice={p} lang={locale} kind="purchase" />} phone={p.customer?.phone ?? null} name={`purchase-${docNumber(p.number)}`} />
         </div>
       </div>
 

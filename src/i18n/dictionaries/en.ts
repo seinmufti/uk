@@ -48,6 +48,12 @@ const en = {
     printed: "Printed",
     original: "Original",
   },
+  whatsapp: {
+    making: "Preparing…",
+    ready: "{count} page(s) saved and copied. Paste in the chat (Ctrl+V) and send.",
+    saved: "{count} page(s) saved. Attach them in the chat and send.",
+    failed: "Couldn't make the pictures. Try again.",
+  },
   printPage: {
     title: "Print / PDF",
     language: "Invoice language",

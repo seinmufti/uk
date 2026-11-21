@@ -4,7 +4,7 @@ import { dirFor, type Locale } from "@/i18n/locales"
 import { translator } from "@/i18n/translate"
 import { COMPANY } from "@/lib/company"
 import type { DocKind, Invoice } from "@/lib/data/types"
-import { formatDate, today } from "@/lib/dates"
+import { formatDate } from "@/lib/dates"
 import { docNumber, iqd, plain, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
@@ -35,16 +35,17 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
     <div
       lang={lang}
       dir={dir}
-      className={cn("paper flex min-h-[1123px] flex-col bg-white p-[12mm] text-[13px] text-neutral-900 print:min-h-[273mm] print:p-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")}
+      className={cn("paper flex min-h-[1123px] flex-col bg-white p-[12mm] text-[13px] text-neutral-900 print:min-h-[272mm] print:px-[12mm] print:py-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")}
       style={{ colorScheme: "light" }}
     >
       {/* Header: Kurdish name · logo · English name */}
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="rtl">
+      {/* data-keep: blocks a picture export never cuts through (it starts a new page before them instead) */}
+      <header data-keep className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="rtl">
         <div className="text-center font-[family-name:var(--font-arabic)]">
           <div className="text-2xl leading-tight font-extrabold text-amber-600">{COMPANY.nameKu}</div>
           <div className="mt-1 text-sm font-semibold text-neutral-700">{COMPANY.taglineKu}</div>
         </div>
-        <Image src={logo} alt="UK Group" width={120} height={120} className="size-[120px] rounded-full" />
+        <Image src={logo} alt="UK Group" width={120} height={120} loading="eager" className="size-[120px] rounded-full" />
         <div className="text-center" dir="ltr">
           <div className="text-2xl leading-tight font-extrabold tracking-tight text-amber-600">{COMPANY.nameEn}</div>
           <div className="mt-1 text-sm font-semibold text-neutral-700">{COMPANY.taglineEn}</div>
@@ -52,7 +53,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
       </header>
 
       {/* Contact strip */}
-      <div className="mt-4 flex overflow-hidden rounded-md text-sm font-semibold" dir="rtl">
+      <div data-keep className="mt-4 flex overflow-hidden rounded-md text-sm font-semibold" dir="rtl">
         <div className="flex flex-1 items-center gap-2 bg-amber-500 px-4 py-2 font-[family-name:var(--font-arabic)] text-neutral-950">
           <svg viewBox="0 0 24 24" className="size-4 shrink-0 fill-current" aria-hidden="true">
             <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
@@ -65,7 +66,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
       </div>
 
       {/* The invoice and who it is for */}
-      <section className="mt-5 grid grid-cols-2 gap-8 border-b-2 border-neutral-800 pb-4">
+      <section data-keep className="mt-5 grid grid-cols-2 gap-8 border-b-2 border-neutral-800 pb-4">
         <dl className="grid content-start gap-2">
           <Row label={t(sale ? "invoices.customer" : "purchases.supplier")}>
             <span className="font-bold">{invoice.customer?.name ?? t(sale ? "invoices.noCustomer" : "purchases.noSupplier")}</span>
@@ -100,7 +101,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
       {/* The lines */}
       <table className="mt-5 w-full border-collapse border border-neutral-400 text-[13px]">
         <thead>
-          <tr className="bg-neutral-100 text-neutral-700">
+          <tr data-keep className="bg-neutral-100 text-neutral-700">
             <th className="w-10 border border-neutral-400 px-2 py-1.5 text-center font-semibold">#</th>
             <th className="border border-neutral-400 px-2 py-1.5 text-start font-semibold">{t("common.description")}</th>
             <th className="w-16 border border-neutral-400 px-2 py-1.5 text-center font-semibold">{t("common.qty")}</th>
@@ -114,7 +115,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
         </thead>
         <tbody>
           {invoice.items.map((item, i) => (
-            <tr key={item.id ?? i} className="break-inside-avoid">
+            <tr data-keep key={item.id ?? i} className="break-inside-avoid">
               <td className="border border-neutral-300 px-2 py-1.5 text-center text-neutral-500">{i + 1}</td>
               <td className="border border-neutral-300 px-2 py-1.5">{item.description}</td>
               <td className="border border-neutral-300 px-2 py-1.5 text-center tabular-nums">{plain(item.qty, 3)}</td>
@@ -130,7 +131,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
       </table>
 
       {/* Notes beside the totals: never split across two pages (moves to the next page whole) */}
-      <section className="mt-5 grid break-inside-avoid grid-cols-[1fr_300px] items-start gap-6">
+      <section data-keep className="mt-5 grid break-inside-avoid grid-cols-[1fr_300px] items-start gap-6">
         <div className="relative min-h-32 rounded-xl border-2 border-neutral-400 p-4 pt-5">
           <span className="absolute -top-3 end-4 rounded bg-neutral-800 px-2 py-0.5 text-xs font-semibold text-white">{t("common.notes")}</span>
           <p className="whitespace-pre-wrap">{invoice.notes}</p>
@@ -156,7 +157,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
       </section>
 
       {/* Signatures */}
-      <section className="mt-auto grid break-inside-avoid grid-cols-2 gap-16 pt-16 pb-4">
+      <section data-keep className="mt-auto grid break-inside-avoid grid-cols-2 gap-16 pt-16">
         <div>
           <div className="text-sm font-semibold">{t("sheet.accountantSignature")}:</div>
           <div className="mt-12 border-b border-dashed border-neutral-500" />
@@ -166,14 +167,6 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
           <div className="mt-12 border-b border-dashed border-neutral-500" />
         </div>
       </section>
-      <footer className="flex justify-between border-t pt-2 text-[11px] text-neutral-500">
-        <span>
-          {COMPANY.nameEn} · {COMPANY.nameKu}
-        </span>
-        <span>
-          {t("sheet.printed")}: {formatDate(today(), lang)}
-        </span>
-      </footer>
     </div>
   )
 }

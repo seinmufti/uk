@@ -49,6 +49,12 @@ const ar: DeepPartial<Messages> = {
     printed: "طُبعت في",
     original: "الأصل",
   },
+  whatsapp: {
+    making: "جارٍ التحضير…",
+    ready: "تم حفظ ونسخ {count} صفحة. الصقها في المحادثة (Ctrl+V) ثم أرسل.",
+    saved: "تم حفظ {count} صفحة. أرفقها في المحادثة ثم أرسل.",
+    failed: "تعذّر إنشاء الصور. حاول مرة أخرى.",
+  },
   printPage: {
     title: "طباعة / PDF",
     language: "لغة الفاتورة",

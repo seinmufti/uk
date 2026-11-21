@@ -49,6 +49,12 @@ const ckb: DeepPartial<Messages> = {
     printed: "چاپکراوە",
     original: "ڕەسەن",
   },
+  whatsapp: {
+    making: "ئامادە دەکرێت…",
+    ready: "{count} پەڕە پاشەکەوت و کۆپی کرا. لە گفتوگۆکەدا دایبنێ (Ctrl+V) و بینێرە.",
+    saved: "{count} پەڕە پاشەکەوت کرا. لە گفتوگۆکەدا هاوپێچی بکە و بینێرە.",
+    failed: "نەتوانرا وێنەکان دروست بکرێن. دووبارە هەوڵ بدەوە.",
+  },
   printPage: {
     title: "چاپ / PDF",
     language: "زمانی پسوولە",
