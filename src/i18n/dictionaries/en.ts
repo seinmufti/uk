@@ -51,6 +51,9 @@ const en = {
     original: "Original",
   },
   whatsapp: {
+    shared: "{count} pages shared.",
+    shareReady: "{count} pages are ready to send.",
+    share: "Share",
     copiedLast: "Page {page} of {count} copied. Press Ctrl+V in the chat, then send.",
     copiedPage: "Page {page} of {count} copied. Press Ctrl+V in the chat, then copy the next page.",
     copyPage: "Copy page {page} of {count}",

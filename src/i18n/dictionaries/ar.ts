@@ -52,6 +52,9 @@ const ar: DeepPartial<Messages> = {
     original: "الأصل",
   },
   whatsapp: {
+    shared: "تمت مشاركة {count} صفحات.",
+    shareReady: "{count} صفحات جاهزة للإرسال.",
+    share: "مشاركة",
     copiedLast: "تم نسخ الصفحة {page} من {count}. اضغط Ctrl+V في المحادثة ثم أرسل.",
     copiedPage: "تم نسخ الصفحة {page} من {count}. اضغط Ctrl+V في المحادثة ثم انسخ الصفحة التالية.",
     copyPage: "نسخ الصفحة {page} من {count}",

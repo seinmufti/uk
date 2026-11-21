@@ -52,6 +52,9 @@ const ckb: DeepPartial<Messages> = {
     original: "ڕەسەن",
   },
   whatsapp: {
+    shared: "{count} پەڕە هاوبەش کرا.",
+    shareReady: "{count} پەڕە ئامادەی ناردنن.",
+    share: "هاوبەشکردن",
     copiedLast: "پەڕەی {page} لە {count} کۆپی کرا. لە گفتوگۆکەدا Ctrl+V دابگرە و بینێرە.",
     copiedPage: "پەڕەی {page} لە {count} کۆپی کرا. لە گفتوگۆکەدا Ctrl+V دابگرە، پاشان پەڕەی دواتر کۆپی بکە.",
     copyPage: "کۆپیکردنی پەڕەی {page} لە {count}",

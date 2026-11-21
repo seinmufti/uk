@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/i18n/provider"
 import { sheetToPages, whatsappNumber } from "@/lib/sheet-images"
+
+const noop = () => () => {}
 
 function WhatsAppIcon() {
   return (
@@ -16,88 +18,110 @@ function WhatsAppIcon() {
 }
 
 /**
- * Sends an invoice on WhatsApp as pictures, one high-quality PNG per A4 page; nothing is downloaded. On a
- * computer page 1 is copied and the customer's WhatsApp chat opens: Ctrl+V, then "Copy page 2" for the next
- * one, and so on. On a phone the share sheet opens with every page attached.
+ * Sends an invoice on WhatsApp as pictures, one high-quality PNG per A4 page; nothing is downloaded.
+ * The pictures are made in the background as soon as the invoice opens, so the click acts at once:
+ *  - one page: it's copied and the customer's WhatsApp chat opens (Ctrl+V, then send);
+ *  - several pages: the system's Share window opens with every page attached as its own picture
+ *    (pick WhatsApp and the customer). Without a Share window, pages are copied one by one.
+ * `name` also identifies the sheet: when it changes (e.g. Payment ↔ Quotation) the pictures are made again.
  */
 export function WhatsAppButton({ sheet, phone, name }: { sheet: React.ReactNode; phone: string | null; name: string }) {
   const { t } = useI18n()
-  const [busy, setBusy] = useState(false)
+  // The sheet whose pictures are being made (null once they're ready)
+  const [making, setMaking] = useState<string | null>(name)
+  const [waiting, setWaiting] = useState(false)
+  // Only in the browser (the off-screen sheet is never part of the server's page)
+  const mounted = useSyncExternalStore(noop, () => true, () => false)
   const holder = useRef<HTMLDivElement>(null)
-  const done = useRef<((pages: Blob[]) => void) | null>(null)
-  const failed = useRef<((e: unknown) => void) | null>(null)
+  const [ready, setReady] = useState<{ name: string; pages: Blob[] } | null>(null)
+  const pending = useRef<((pages: Blob[]) => void) | null>(null)
 
-  // Once the sheet is on the page (off screen), turn it into pictures
+  // A different sheet (Payment ↔ Quotation): make its pictures
+  if (making !== name && ready?.name !== name) setMaking(name)
+
+  // Make the pictures off screen
   useEffect(() => {
-    if (!busy || !holder.current) return
-    const el = holder.current.firstElementChild as HTMLElement | null
-    if (!el) return
-    sheetToPages(el).then((pages) => done.current?.(pages), (e) => failed.current?.(e))
-  }, [busy])
-
-  const send = () => {
-    const pagesPromise = new Promise<Blob[]>((resolve, reject) => {
-      done.current = resolve
-      failed.current = reject
-    })
-    const number = whatsappNumber(phone)
-    const chatUrl = number ? `https://wa.me/${number}` : "https://web.whatsapp.com/"
-    const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
-    setBusy(true)
-
-    // Phones: the share sheet, with the pictures attached (pick WhatsApp and the contact)
-    if (mobile) {
-      pagesPromise
-        .then(async (pages) => {
-          const files = pages.map((b, i) => new File([b], pages.length > 1 ? `${name}-${i + 1}.png` : `${name}.png`, { type: "image/png" }))
-          if (navigator.canShare?.({ files })) await navigator.share({ files }).catch(() => {})
-          else window.location.href = chatUrl
+    if (!making) return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      const el = holder.current?.firstElementChild as HTMLElement | null
+      if (!el) return
+      sheetToPages(el)
+        .then((pages) => {
+          if (cancelled) return
+          setReady({ name: making, pages })
+          pending.current?.(pages)
+          pending.current = null
         })
-        .catch(() => toast.error(t("whatsapp.failed")))
-        .finally(() => setBusy(false))
-      return
+        .catch(() => !cancelled && toast.error(t("whatsapp.failed")))
+        .finally(() => !cancelled && setMaking(null))
+    }, 300)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
     }
+  }, [making, t])
 
-    // Computers: the invoice goes on the clipboard (started now, while the click still counts), then the
-    // customer's chat opens, ready for Ctrl+V and send. Nothing is downloaded.
-    const openChat = () => {
-      // (with "noopener" the browser reports every tab as blocked, so the link is cut off by hand)
-      const tab = window.open(chatUrl, "_blank")
-      // Blocked because it took a while: a button in the message opens it instead
-      if (!tab) return false
-      tab.opener = null
-      return true
-    }
-    // The clipboard holds one picture at a time: page 1 now, then a button copies each next page
-    // (a click each time, which the browser needs before it lets the clipboard be written)
-    const copyNext = (pages: Blob[], i: number) =>
-      navigator.clipboard
-        .write([new ClipboardItem({ "image/png": pages[i] })])
-        .then(() => announce(pages, i))
-        .catch(() => toast.error(t("whatsapp.failed")))
-    const announce = (pages: Blob[], i: number) => {
-      const next = i + 1 < pages.length ? { label: t("whatsapp.copyPage", { page: i + 2, count: pages.length }), onClick: () => void copyNext(pages, i + 1) } : undefined
-      const message = pages.length === 1 ? t("whatsapp.copied") : t(next ? "whatsapp.copiedPage" : "whatsapp.copiedLast", { page: i + 1, count: pages.length })
-      toast.success(message, { action: next, duration: next ? 120_000 : 8_000 })
-    }
+  const number = whatsappNumber(phone)
+  const chatUrl = number ? `https://wa.me/${number}` : "https://web.whatsapp.com/"
+  const openChat = () => {
+    const tab = window.open(chatUrl, "_blank")
+    if (tab) tab.opener = null
+    return !!tab
+  }
+  const files = (pages: Blob[]) => pages.map((b, i) => new File([b], pages.length > 1 ? `${name}-${i + 1}.png` : `${name}.png`, { type: "image/png" }))
+
+  // One picture at a time on the clipboard; each next page on a click (the browser wants one per copy)
+  const copyPage = (pages: Blob[], i: number): Promise<void> =>
     navigator.clipboard
-      .write([new ClipboardItem({ "image/png": pagesPromise.then((pages) => pages[0]) })])
-      .then(async () => {
-        const pages = await pagesPromise
-        announce(pages, 0)
-        if (!openChat()) toast(t("whatsapp.openChat"), { action: { label: t("whatsapp.openChat"), onClick: openChat }, duration: 20_000 })
+      .write([new ClipboardItem({ "image/png": pages[i] })])
+      .then(() => {
+        const next = i + 1 < pages.length ? { label: t("whatsapp.copyPage", { page: i + 2, count: pages.length }), onClick: () => void copyPage(pages, i + 1) } : undefined
+        const message = pages.length === 1 ? t("whatsapp.copied") : t(next ? "whatsapp.copiedPage" : "whatsapp.copiedLast", { page: i + 1, count: pages.length })
+        toast.success(message, { action: next, duration: next ? 120_000 : 8_000 })
       })
-      .catch(() => toast.error(t("whatsapp.failed")))
-      .finally(() => setBusy(false))
+      .catch(() => {
+        toast.error(t("whatsapp.failed"))
+      })
+
+  const shareAll = (pages: Blob[]): Promise<void> =>
+    navigator
+      .share({ files: files(pages) })
+      .then(() => {
+        toast.success(t("whatsapp.shared", { count: pages.length }))
+      })
+      .catch((e: unknown) => {
+        // Closed without sharing: nothing to say. Took too long for the browser: a button starts it again
+        if (e instanceof DOMException && e.name === "AbortError") return
+        toast(t("whatsapp.shareReady", { count: pages.length }), { action: { label: t("whatsapp.share"), onClick: () => void shareAll(pages) }, duration: 60_000 })
+      })
+
+  const send = (pages: Blob[]) => {
+    if (pages.length > 1 && navigator.canShare?.({ files: files(pages) })) return void shareAll(pages)
+    void copyPage(pages, 0).then(() => {
+      if (!openChat()) toast(t("whatsapp.openChat"), { action: { label: t("whatsapp.openChat"), onClick: openChat }, duration: 20_000 })
+    })
+  }
+
+  const click = () => {
+    const done = ready?.name === name ? ready.pages : null
+    if (done) return send(done)
+    // Still being made: finish, then go on (a button takes over if the browser no longer allows it)
+    setWaiting(true)
+    pending.current = (pages) => {
+      setWaiting(false)
+      send(pages)
+    }
   }
 
   return (
     <>
-      <Button variant="outline" onClick={send} disabled={busy} className="text-emerald-700 dark:text-emerald-400">
-        <WhatsAppIcon /> {busy ? t("whatsapp.making") : "WhatsApp"}
+      <Button variant="outline" onClick={click} disabled={waiting} className="text-emerald-700 dark:text-emerald-400">
+        <WhatsAppIcon /> {waiting ? t("whatsapp.making") : "WhatsApp"}
       </Button>
-      {/* The sheet at A4 width, off screen, only while the pictures are made */}
-      {busy &&
+      {/* The sheet at A4 width, off screen, only while its pictures are made */}
+      {making === name &&
+        mounted &&
         createPortal(
           <div ref={holder} aria-hidden="true" className="pointer-events-none fixed top-0 -left-[10000px] w-[794px] print:hidden">
             {sheet}
