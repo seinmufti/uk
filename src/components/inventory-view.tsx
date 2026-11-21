@@ -14,6 +14,7 @@ import { INVENTORY_KINDS, type InventoryItem, type InventoryKind } from "@/lib/d
 import { num, plain } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
+import { MoneyInput } from "./money-input"
 import { NumberInput } from "./number-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { LinkTabs } from "./link-tabs"
@@ -142,7 +143,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
             <NumberInput  step="any" min="0" value={form.qty} onChange={(e) => set("qty", e.target.value)} />
           </Field>
           <Field label={t("inventory.value")}>
-            <NumberInput  step="0.01" value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} required />
+            <MoneyInput value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} required />
           </Field>
         </div>
         <Field label={t("common.date")}>

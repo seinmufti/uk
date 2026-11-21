@@ -16,7 +16,7 @@ import type { Debt, DebtDirection } from "@/lib/data/types"
 import { num, round2 } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
-import { NumberInput } from "./number-input"
+import { MoneyInput } from "./money-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { LinkTabs } from "./link-tabs"
 import { PageHeader } from "./page-header"
@@ -166,8 +166,8 @@ export function DebtsView({
         <Field label={t("debts.party")}>
           <Input value={form.party} onChange={(e) => set("party", e.target.value)} required autoFocus />
         </Field>
-        <Field label={`${t("common.amount")} (USD)`}>
-          <NumberInput  step="0.01" min="0" value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} required />
+        <Field label={t("common.amount")}>
+          <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} required />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("common.date")}>
@@ -190,7 +190,7 @@ export function DebtsView({
         onSubmit={() => paying && run(() => payDebt(paying.id, num(payment)), { success: t("common.saved"), then: () => setPaying(null) })}
       >
         <Field label={t("debts.paymentAmount")}>
-          <NumberInput  step="0.01" min="0" value={payment} onChange={(e) => setPayment(e.target.value)} required autoFocus />
+          <MoneyInput value={payment} onChange={(e) => setPayment(e.target.value)} required autoFocus />
         </Field>
       </FormDialog>
     </div>

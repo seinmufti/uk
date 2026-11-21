@@ -14,6 +14,7 @@ import type { OpenItem, Party, ReceiptKind } from "@/lib/data/types"
 import { iqd, num, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { AREA, Field, NativeSelect } from "./form-bits"
+import { MoneyInput } from "./money-input"
 import { NumberInput } from "./number-input"
 import { PartyPicker } from "./party-picker"
 import { PartyDialog } from "./party-dialog"
@@ -159,17 +160,7 @@ export function ReceiptForm({
 
       <div className={cn("grid gap-4", AREA.payment)}>
         <Field label={t("receipts.amount")}>
-          <NumberInput
-            
-            step="0.01"
-            min="0.01"
-            max={chosen ? chosen.remaining : undefined}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            required
-            className="text-end tabular-nums"
-          />
+          <MoneyInput value={amount} onChange={(e) => setAmount(e.target.value)} rate={num(rate)} required />
         </Field>
       </div>
 

@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils"
 import { Amount } from "./amount"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
+import { MoneyInput } from "./money-input"
 import { NumberInput } from "./number-input"
 import { PageHeader } from "./page-header"
 import { PhoneInput } from "./phone-input"
@@ -102,7 +103,7 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
           <PhoneInput value={form.phone} onChange={(phone) => set("phone", phone)} />
         </Field>
         <Field label={t("hr.salary")}>
-          <NumberInput  step="0.01" min="0" value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} required />
+          <MoneyInput value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} required />
         </Field>
         <Field label={t("hr.startDate")}>
           <Input type="date" value={form.start_date} onChange={(e) => set("start_date", e.target.value)} required />
@@ -521,8 +522,8 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
             </button>
           ))}
         </div>
-        <Field label={`${t("common.amount")} (USD)`}>
-          <NumberInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required autoFocus placeholder="0.00" />
+        <Field label={t("common.amount")}>
+          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required autoFocus />
         </Field>
         <Field label={t("hr.reason")}>
           <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t(form.kind === "bonus" ? "hr.reasonBonus" : "hr.reasonDeduction")} />

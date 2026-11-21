@@ -1,3 +1,4 @@
+import { UserRound } from "lucide-react"
 import Image from "next/image"
 import logo from "@/assets/logo.webp"
 import Link from "next/link"
@@ -31,6 +32,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Suspense>
             <RateBadge />
           </Suspense>
+          {/* Who is signed in */}
+          <span className="flex items-center gap-1.5 px-2 text-sm font-medium" title={session.username}>
+            <UserRound className="size-4 text-muted-foreground" />
+            <span className="max-w-32 truncate" dir="auto">{session.username}</span>
+          </span>
           <SettingsMenu admin={session.admin} username={session.userId === "demo" ? null : session.username} />
         </div>
       </header>
