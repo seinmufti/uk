@@ -4,8 +4,9 @@ import { notFound } from "next/navigation"
 import { DocPayments } from "@/components/doc-payments"
 import { InvoiceActions } from "@/components/invoice-actions"
 import { InvoiceDocument, InvoicePaper } from "@/components/invoice-document"
-import { PrintDialog } from "@/components/print-dialog"
-import { WhatsAppButton } from "@/components/whatsapp-button"
+import { InvoiceExport } from "@/components/invoice-export"
+import type { SheetVariant } from "@/components/invoice-sheet"
+import type { Locale } from "@/i18n/locales"
 import { docNumber } from "@/lib/money"
 import { buttonVariants } from "@/components/ui/button"
 import { getLocale, getT } from "@/i18n/server"
@@ -29,8 +30,13 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
             <Pencil /> {t("common.edit")}
           </Link>
           <InvoiceActions id={id} status={invoice.status} />
-          <PrintDialog sheets={{ en: <InvoicePaper invoice={invoice} lang="en" />, ar: <InvoicePaper invoice={invoice} lang="ar" />, ckb: <InvoicePaper invoice={invoice} lang="ckb" /> }} />
-          <WhatsAppButton sheet={<InvoicePaper invoice={invoice} lang={locale} />} phone={invoice.customer?.phone ?? null} name={`invoice-${docNumber(invoice.number)}`} />
+          <InvoiceExport
+            sheets={Object.fromEntries(
+              (["payment", "quotation"] as const).map((v) => [v, { en: <InvoicePaper invoice={invoice} lang="en" variant={v} />, ar: <InvoicePaper invoice={invoice} lang="ar" variant={v} />, ckb: <InvoicePaper invoice={invoice} lang="ckb" variant={v} /> }]),
+            ) as Record<SheetVariant, Record<Locale, React.ReactNode>>}
+            phone={invoice.customer?.phone ?? null}
+            name={`invoice-${docNumber(invoice.number)}`}
+          />
         </div>
       </div>
 

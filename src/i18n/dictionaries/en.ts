@@ -43,12 +43,16 @@ const en = {
     },
   },
   sheet: {
+    quotation: "Quotation",
+    payment: "Payment",
     accountantSignature: "Accountant signature",
     recipientSignature: "Recipient name and signature",
     printed: "Printed",
     original: "Original",
   },
   whatsapp: {
+    copied: "Invoice copied. Press Ctrl+V in the WhatsApp chat, then send.",
+    openChat: "Open chat",
     making: "Preparing…",
     ready: "{count} page(s) saved and copied. Paste in the chat (Ctrl+V) and send.",
     saved: "{count} page(s) saved. Attach them in the chat and send.",

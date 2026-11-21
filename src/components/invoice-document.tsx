@@ -5,7 +5,7 @@ import type { DocKind, Invoice } from "@/lib/data/types"
 import { formatDate, today } from "@/lib/dates"
 import { docNumber, iqd, plain, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import { InvoiceSheet } from "./invoice-sheet"
+import { InvoiceSheet, type SheetVariant } from "./invoice-sheet"
 
 /**
  * The invoice itself, as shown on its page and on the print / PDF page. Written in whatever
@@ -147,6 +147,6 @@ function Line({ label, value, sub }: { label: string; value: string; sub?: strin
 }
 
 /** The invoice as a white printed sheet in the given language (light even in dark mode): see InvoiceSheet. */
-export function InvoicePaper({ invoice, lang, kind = "sale" }: { invoice: Invoice; lang: Locale; kind?: DocKind }) {
-  return <InvoiceSheet invoice={invoice} lang={lang} kind={kind} />
+export function InvoicePaper({ invoice, lang, kind = "sale", variant }: { invoice: Invoice; lang: Locale; kind?: DocKind; variant?: SheetVariant }) {
+  return <InvoiceSheet invoice={invoice} lang={lang} kind={kind} variant={variant} />
 }

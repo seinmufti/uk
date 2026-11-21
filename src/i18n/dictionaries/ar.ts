@@ -44,12 +44,16 @@ const ar: DeepPartial<Messages> = {
     },
   },
   sheet: {
+    quotation: "عرض سعر",
+    payment: "دفع",
     accountantSignature: "توقيع المحاسب",
     recipientSignature: "اسم وتوقيع المستلم",
     printed: "طُبعت في",
     original: "الأصل",
   },
   whatsapp: {
+    copied: "تم نسخ الفاتورة. اضغط Ctrl+V في محادثة واتساب ثم أرسل.",
+    openChat: "فتح المحادثة",
     making: "جارٍ التحضير…",
     ready: "تم حفظ ونسخ {count} صفحة. الصقها في المحادثة (Ctrl+V) ثم أرسل.",
     saved: "تم حفظ {count} صفحة. أرفقها في المحادثة ثم أرسل.",

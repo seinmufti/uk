@@ -14,7 +14,10 @@ import { cn } from "@/lib/utils"
  * beside the totals, and signature lines. Labels are in the chosen language; the business name is always
  * in Kurdish (and English).
  */
-export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoice; lang: Locale; kind?: DocKind }) {
+/** A customer invoice prints as a payment invoice (no signatures) or a quotation (with signature lines). */
+export type SheetVariant = "payment" | "quotation"
+
+export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoice: Invoice; lang: Locale; kind?: DocKind; variant?: SheetVariant }) {
   const t = translator(lang)
   const dir = dirFor(lang)
   const sale = kind === "sale"
@@ -80,7 +83,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
         </dl>
         <dl className="grid content-start gap-2">
           <div className="flex items-center justify-between gap-3">
-            <span className="rounded bg-neutral-900 px-3 py-1 text-sm font-bold text-white">{t(sale ? "nav.invoices" : "nav.purchases")}</span>
+            <span className="rounded bg-neutral-900 px-3 py-1 text-sm font-bold text-white">{t(variant === "quotation" ? "sheet.quotation" : sale ? "nav.invoices" : "nav.purchases")}</span>
             <span className="text-sm text-neutral-500">{t("sheet.original")}</span>
           </div>
           <Row label={t(sale ? "invoices.number" : "purchases.number")}>
@@ -156,7 +159,8 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
         </div>
       </section>
 
-      {/* Signatures */}
+      {/* Signatures: on quotations (and purchase invoices), not on payment invoices */}
+      {variant !== "payment" && (
       <section data-keep className="mt-auto grid break-inside-avoid grid-cols-2 gap-16 pt-16">
         <div>
           <div className="text-sm font-semibold">{t("sheet.accountantSignature")}:</div>
@@ -167,6 +171,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
           <div className="mt-12 border-b border-dashed border-neutral-500" />
         </div>
       </section>
+      )}
     </div>
   )
 }

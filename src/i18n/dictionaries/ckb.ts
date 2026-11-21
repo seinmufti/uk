@@ -44,12 +44,16 @@ const ckb: DeepPartial<Messages> = {
     },
   },
   sheet: {
+    quotation: "نرخنامە",
+    payment: "پارەدان",
     accountantSignature: "واژۆی ژمێریار",
     recipientSignature: "ناو و واژۆی وەرگر",
     printed: "چاپکراوە",
     original: "ڕەسەن",
   },
   whatsapp: {
+    copied: "پسوولەکە کۆپی کرا. لە گفتوگۆی واتسئەپ Ctrl+V دابگرە و بینێرە.",
+    openChat: "کردنەوەی گفتوگۆ",
     making: "ئامادە دەکرێت…",
     ready: "{count} پەڕە پاشەکەوت و کۆپی کرا. لە گفتوگۆکەدا دایبنێ (Ctrl+V) و بینێرە.",
     saved: "{count} پەڕە پاشەکەوت کرا. لە گفتوگۆکەدا هاوپێچی بکە و بینێرە.",

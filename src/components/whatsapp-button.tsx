@@ -15,18 +15,10 @@ function WhatsAppIcon() {
   )
 }
 
-const download = (blob: Blob, name: string) => {
-  const a = document.createElement("a")
-  a.href = URL.createObjectURL(blob)
-  a.download = name
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
-}
-
 /**
- * Sends an invoice on WhatsApp as pictures: every A4 page becomes a high-quality PNG, saved and copied to
- * the clipboard. On a phone the share sheet opens (pick WhatsApp, the pictures are attached); on a computer
- * the customer's WhatsApp chat opens, ready to paste the picture and press send.
+ * Sends an invoice on WhatsApp as a picture: every A4 page becomes a high-quality PNG. On a computer it is
+ * copied to the clipboard (pages one under the other) and the customer's WhatsApp chat opens: press Ctrl+V,
+ * then send. On a phone the share sheet opens with the pages attached.
  */
 export function WhatsAppButton({ sheet, phone, name }: { sheet: React.ReactNode; phone: string | null; name: string }) {
   const { t } = useI18n()
@@ -48,31 +40,41 @@ export function WhatsAppButton({ sheet, phone, name }: { sheet: React.ReactNode;
       done.current = resolve
       failed.current = reject
     })
-    // Started while the click still counts, so the browser allows the clipboard and the new tab
     const number = whatsappNumber(phone)
+    const chatUrl = number ? `https://wa.me/${number}` : "https://web.whatsapp.com/"
     const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent)
-    const chat = mobile ? null : window.open("about:blank", "_blank")
-    const copied = navigator.clipboard?.write?.([new ClipboardItem({ "image/png": pagesPromise.then(stackPages) })]).then(
-      () => true,
-      () => false,
-    )
     setBusy(true)
-    pagesPromise
-      .then(async (pages) => {
-        const files = pages.map((b, i) => new File([b], pages.length > 1 ? `${name}-${i + 1}.png` : `${name}.png`, { type: "image/png" }))
-        if (mobile && navigator.canShare?.({ files })) {
-          await navigator.share({ files }).catch(() => {})
-          return
-        }
-        for (const f of files) download(f, f.name)
-        const ok = await copied
-        if (chat) chat.location.href = number ? `https://wa.me/${number}` : "https://web.whatsapp.com/"
-        toast.success(t(ok ? "whatsapp.ready" : "whatsapp.saved", { count: pages.length }))
+
+    // Phones: the share sheet, with the pictures attached (pick WhatsApp and the contact)
+    if (mobile) {
+      pagesPromise
+        .then(async (pages) => {
+          const files = pages.map((b, i) => new File([b], pages.length > 1 ? `${name}-${i + 1}.png` : `${name}.png`, { type: "image/png" }))
+          if (navigator.canShare?.({ files })) await navigator.share({ files }).catch(() => {})
+          else window.location.href = chatUrl
+        })
+        .catch(() => toast.error(t("whatsapp.failed")))
+        .finally(() => setBusy(false))
+      return
+    }
+
+    // Computers: the invoice goes on the clipboard (started now, while the click still counts), then the
+    // customer's chat opens, ready for Ctrl+V and send. Nothing is downloaded.
+    const openChat = () => {
+      // (with "noopener" the browser reports every tab as blocked, so the link is cut off by hand)
+      const tab = window.open(chatUrl, "_blank")
+      // Blocked because it took a while: a button in the message opens it instead
+      if (!tab) return false
+      tab.opener = null
+      return true
+    }
+    navigator.clipboard
+      .write([new ClipboardItem({ "image/png": pagesPromise.then(stackPages) })])
+      .then(() => {
+        const opened = openChat()
+        toast.success(t("whatsapp.copied"), opened ? undefined : { action: { label: t("whatsapp.openChat"), onClick: openChat }, duration: 20_000 })
       })
-      .catch(() => {
-        chat?.close()
-        toast.error(t("whatsapp.failed"))
-      })
+      .catch(() => toast.error(t("whatsapp.failed")))
       .finally(() => setBusy(false))
   }
 
