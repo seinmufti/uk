@@ -42,6 +42,12 @@ const en = {
       payroll: "Monthly pay and deductions",
     },
   },
+  sheet: {
+    accountantSignature: "Accountant signature",
+    recipientSignature: "Recipient name and signature",
+    printed: "Printed",
+    original: "Original",
+  },
   printPage: {
     title: "Print / PDF",
     language: "Invoice language",
@@ -304,6 +310,8 @@ const en = {
     totalInRange: "Total in range",
   },
   hr: {
+    addBonus: "Add bonus",
+    addDeduction: "Add deduction",
     bonus: "Bonus",
     deduction: "Deduction",
     reason: "Reason",

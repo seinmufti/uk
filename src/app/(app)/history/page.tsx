@@ -6,8 +6,15 @@ import { getT } from "@/i18n/server"
 import { describe, listChanges } from "@/lib/data/history"
 import { cn } from "@/lib/utils"
 
-const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+// DD/MM/YYYY HH:MM, in Iraq's time
+const when = (iso: string) => {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Baghdad", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
+      .formatToParts(new Date(iso))
+      .map((x) => [x.type, x.value]),
+  )
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`
+}
 
 export default async function HistoryPage() {
   const t = await getT()

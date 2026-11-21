@@ -98,6 +98,18 @@ function FitPage({ children }: { children: React.ReactNode }) {
     return () => el.removeEventListener("wheel", onWheel)
   }, [])
   const scale = fit * zoom
+  // A long invoice runs past one A4 page: the preview grows to show all of it (scroll to see the rest)
+  const sheet = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(PAGE_H)
+  useLayoutEffect(() => {
+    const el = sheet.current
+    if (!el) return
+    const measure = () => setHeight(Math.max(PAGE_H, el.scrollHeight))
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [children])
 
   return (
     <div ref={box} className="relative min-h-0 flex-1 bg-muted/50">
@@ -107,12 +119,12 @@ function FitPage({ children }: { children: React.ReactNode }) {
         ref={scroller}
       >
         {/* Left-to-right box: in Arabic / Kurdish the oversized page would otherwise overflow to the left and sit off-centre (the sheet sets its own direction) */}
-        <div dir="ltr" style={{ width: PAGE_W * scale, height: PAGE_H * scale }} className="m-auto shrink-0">
+        <div dir="ltr" style={{ width: PAGE_W * scale, height: height * scale }} className="m-auto shrink-0">
           <div
-            style={{ width: PAGE_W, height: PAGE_H, transform: `scale(${scale})`, transformOrigin: "top left" }}
+            style={{ width: PAGE_W, height, transform: `scale(${scale})`, transformOrigin: "top left" }}
             className="overflow-hidden rounded-sm bg-white shadow-lg"
           >
-            {children}
+            <div ref={sheet}>{children}</div>
           </div>
         </div>
       </div>

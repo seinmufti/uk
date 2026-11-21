@@ -14,12 +14,12 @@ function buckets(period: Period, from: string, to: string) {
   if (period === "weekly" || period === "monthly") {
     for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const iso = toISODate(d)
-      out.push({ label: period === "weekly" ? d.toLocaleDateString("en-GB", { weekday: "short" }) : String(d.getDate()), from: iso, to: iso })
+      out.push({ label: period === "weekly" ? `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}` : String(d.getDate()), from: iso, to: iso })
     }
   } else {
     for (const d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1, 1)) {
       const last = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-      out.push({ label: d.toLocaleDateString("en-GB", { month: "short" }), from: toISODate(d), to: toISODate(last) })
+      out.push({ label: String(d.getMonth() + 1).padStart(2, "0"), from: toISODate(d), to: toISODate(last) })
     }
   }
   return out

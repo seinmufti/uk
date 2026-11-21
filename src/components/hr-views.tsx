@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, ListChecks, Pencil, Plus, Undo2, Wand2 } from "lucide-react"
+import { Check, Minus, Pencil, Plus, Undo2, Wand2 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
@@ -373,7 +373,7 @@ type ItemForm = { kind: PayrollItem["kind"]; amount: string; reason: string }
 const blankItem = (): ItemForm => ({ kind: "bonus", amount: "", reason: "" })
 
 /** One employee's month: read-only totals; bonuses and deductions are added through a small form. */
-function PayrollLine({ row, onAdd, onOpen }: { row: PayrollRow; onAdd: () => void; onOpen: () => void }) {
+function PayrollLine({ row, onAdd, onOpen }: { row: PayrollRow; onAdd: (kind: PayrollItem["kind"]) => void; onOpen: () => void }) {
   const { t, locale } = useI18n()
   const { pending, run } = useAction()
   const net = round2(row.base_usd - row.deductions_usd + row.bonuses_usd)
@@ -395,11 +395,12 @@ function PayrollLine({ row, onAdd, onOpen }: { row: PayrollRow; onAdd: () => voi
       </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-1">
-          <Button size="icon-sm" variant="ghost" onClick={onAdd} title={t("hr.addAdjustment")} aria-label={t("hr.addAdjustment")}>
+          {/* + adds a bonus, − a deduction; the name opens the list to change them */}
+          <Button size="icon-sm" variant="ghost" className="text-emerald-600 dark:text-emerald-400" onClick={() => onAdd("bonus")} title={t("hr.addBonus")} aria-label={t("hr.addBonus")}>
             <Plus />
           </Button>
-          <Button size="icon-sm" variant="ghost" onClick={onOpen} title={t("hr.editAdjustments")} aria-label={t("hr.editAdjustments")}>
-            <ListChecks />
+          <Button size="icon-sm" variant="ghost" className="text-red-600 dark:text-red-400" onClick={() => onAdd("deduction")} title={t("hr.addDeduction")} aria-label={t("hr.addDeduction")}>
+            <Minus />
           </Button>
           {row.paid_at ? (
             <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, false))} title={t("hr.unpaid")}>
@@ -430,8 +431,8 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
   const listed = rows.find((r) => r.id === listFor)
   const editingRow = rows.find((r) => r.id === editing?.rowId)
 
-  const openItem = (rowId: string, item?: PayrollItem) => {
-    setForm(item ? { kind: item.kind, amount: String(item.amount_usd), reason: item.reason ?? "" } : blankItem())
+  const openItem = (rowId: string, item?: PayrollItem, kind: PayrollItem["kind"] = "bonus") => {
+    setForm(item ? { kind: item.kind, amount: String(item.amount_usd), reason: item.reason ?? "" } : { ...blankItem(), kind })
     setEditing({ rowId, itemId: item?.id ?? null })
   }
 
@@ -477,7 +478,7 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
               </TableRow>
             )}
             {rows.map((row) => (
-              <PayrollLine key={row.id} row={row} onAdd={() => openItem(row.id)} onOpen={() => setListFor(row.id)} />
+              <PayrollLine key={row.id} row={row} onAdd={(kind) => openItem(row.id, undefined, kind)} onOpen={() => setListFor(row.id)} />
             ))}
           </TableBody>
           {rows.length > 0 && (

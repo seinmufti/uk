@@ -9,17 +9,16 @@ export const parseISODate = (s: string) => {
   return new Date(y, (m || 1) - 1, d || 1)
 }
 
-const DATE_LOCALES = { en: "en-GB", ar: "ar-IQ", ckb: "ckb" } as const
-// Browsers have no Sorani month names, so Kurdish dates are written by hand (the months as said in Kurdistan)
-const CKB_MONTHS = ["کانوونی دووەم", "شوبات", "ئازار", "نیسان", "ئایار", "حوزەیران", "تەمموز", "ئاب", "ئەیلوول", "تشرینی یەکەم", "تشرینی دووەم", "کانوونی یەکەم"]
+const two = (n: number) => String(n).padStart(2, "0")
 
-/** "13 Nov 2026"; pass a language to write the month in it (e.g. on a printed invoice). */
-export const formatDate = (s: string | null | undefined, locale: keyof typeof DATE_LOCALES = "en") =>
-  !s
-    ? "—"
-    : locale === "ckb"
-      ? ((d) => `${d.getDate()}ی ${CKB_MONTHS[d.getMonth()]} ${d.getFullYear()}`)(parseISODate(s))
-      : parseISODate(s).toLocaleDateString(DATE_LOCALES[locale], { day: "numeric", month: "short", year: "numeric" })
+/** Dates are always written as numbers, DD/MM/YYYY (e.g. 21/11/2026), in every language. */
+// The language is still accepted (callers pass it) but no longer changes anything
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const formatDate = (s: string | null | undefined, _locale?: string) =>
+  !s ? "—" : ((d) => `${two(d.getDate())}/${two(d.getMonth() + 1)}/${d.getFullYear()}`)(parseISODate(s))
+
+/** A month as MM/YYYY (e.g. 11/2026). */
+export const formatMonth = (s: string) => ((d) => `${two(d.getMonth() + 1)}/${d.getFullYear()}`)(parseISODate(s))
 
 export const PERIODS = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const
 export type Period = (typeof PERIODS)[number]
@@ -67,7 +66,7 @@ export function periodLabel(period: Period, anchor: string) {
   const d = parseISODate(from)
   if (period === "daily") return formatDate(from)
   if (period === "weekly") return `${formatDate(from)} – ${formatDate(to)}`
-  if (period === "monthly") return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+  if (period === "monthly") return formatMonth(from)
   if (period === "quarterly") return `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`
   return String(d.getFullYear())
 }

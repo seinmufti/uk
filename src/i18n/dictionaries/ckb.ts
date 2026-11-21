@@ -43,6 +43,12 @@ const ckb: DeepPartial<Messages> = {
       payroll: "مووچەی مانگانە و بڕینەکان",
     },
   },
+  sheet: {
+    accountantSignature: "واژۆی ژمێریار",
+    recipientSignature: "ناو و واژۆی وەرگر",
+    printed: "چاپکراوە",
+    original: "ڕەسەن",
+  },
   printPage: {
     title: "چاپ / PDF",
     language: "زمانی پسوولە",
@@ -305,6 +311,8 @@ const ckb: DeepPartial<Messages> = {
     totalInRange: "کۆ لەم ماوەیەدا",
   },
   hr: {
+    addBonus: "زیادکردنی پاداشت",
+    addDeduction: "زیادکردنی بڕین",
     bonus: "پاداشت",
     deduction: "بڕین",
     reason: "هۆکار",

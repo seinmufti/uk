@@ -5,15 +5,17 @@ import { Amount } from "@/components/amount"
 import Link from "next/link"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { deleteDebt, payDebt, saveDebt } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
-import type { Debt, DebtDirection } from "@/lib/data/types"
-import { num, round2 } from "@/lib/money"
+import type { Debt, DebtDirection, InvoiceRow } from "@/lib/data/types"
+import { isEnabled } from "@/lib/features"
+import { cn } from "@/lib/utils"
+import { docNumber, num, round2 } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
 import { MoneyInput } from "./money-input"
@@ -27,10 +29,13 @@ const blank = () => ({ party: "", amount_usd: "", date: today(), due_date: "", n
 export function DebtsView({
   direction,
   debts,
+  invoices,
   totals,
 }: {
   direction: DebtDirection
   debts: Debt[]
+  /** Customer invoices with money still owed on them */
+  invoices: InvoiceRow[]
   totals: Record<DebtDirection, number>
 }) {
   const { t, locale } = useI18n()
@@ -78,7 +83,41 @@ export function DebtsView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {debts.length === 0 && (
+            {/* Unpaid customer invoices: paid off through a receipt (or on the invoice itself) */}
+            {invoices.map((inv) => {
+              const left = round2(inv.total_usd - inv.amount_paid_usd)
+              const overdue = !!inv.due_date && inv.due_date < today()
+              return (
+                <TableRow key={`inv-${inv.id}`}>
+                  <TableCell>
+                    <div className="font-medium">{inv.customer_name ?? t("invoices.noCustomer")}</div>
+                    <Link href={`/invoices/${inv.id}`} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+                      {t("invoices.number")} {docNumber(inv.number)}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatDate(inv.date, locale)}</TableCell>
+                  <TableCell className={cn("hidden md:table-cell", overdue && "font-medium text-red-700 dark:text-red-400")}>{formatDate(inv.due_date, locale)}</TableCell>
+                  <TableCell className="text-end tabular-nums"><Amount usd={inv.total_usd} rate={inv.rate_per_100} /></TableCell>
+                  <TableCell className="hidden text-end tabular-nums sm:table-cell"><Amount usd={inv.amount_paid_usd} rate={inv.rate_per_100} /></TableCell>
+                  <TableCell className="text-end tabular-nums">
+                    <span className="font-medium"><Amount usd={left} rate={inv.rate_per_100} /></span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1">
+                      <Link
+                        href={isEnabled("receipts") ? `/receipts/new?kind=in&invoice=${inv.id}` : `/invoices/${inv.id}/edit`}
+                        className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+                        aria-label={t("debts.addPayment")}
+                        title={t("debts.addPayment")}
+                      >
+                        <Banknote />
+                      </Link>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+            {debts.length === 0 && invoices.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   {t("debts.empty")}

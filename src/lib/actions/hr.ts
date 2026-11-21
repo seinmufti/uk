@@ -4,7 +4,7 @@ import { tracked } from "./tracked"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
-import { parseISODate, periodRange, today } from "@/lib/dates"
+import { formatMonth, parseISODate, periodRange, today } from "@/lib/dates"
 import { num, round2 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
@@ -202,7 +202,7 @@ async function setPayrollPaidAction(id: string, paid: boolean) {
       const paidAt = today()
       must(await db().from("payroll").update({ paid_at: paidAt }).eq("id", id))
       must(await db().from("expenses").delete().eq("payroll_id", id))
-      const month = parseISODate(row.month).toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+      const month = formatMonth(row.month)
       must(
         await db()
           .from("expenses")

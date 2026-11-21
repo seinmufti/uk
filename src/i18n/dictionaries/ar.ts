@@ -43,6 +43,12 @@ const ar: DeepPartial<Messages> = {
       payroll: "الرواتب الشهرية والاستقطاعات",
     },
   },
+  sheet: {
+    accountantSignature: "توقيع المحاسب",
+    recipientSignature: "اسم وتوقيع المستلم",
+    printed: "طُبعت في",
+    original: "الأصل",
+  },
   printPage: {
     title: "طباعة / PDF",
     language: "لغة الفاتورة",
@@ -305,6 +311,8 @@ const ar: DeepPartial<Messages> = {
     totalInRange: "المجموع في الفترة",
   },
   hr: {
+    addBonus: "إضافة مكافأة",
+    addDeduction: "إضافة خصم",
     bonus: "مكافأة",
     deduction: "خصم",
     reason: "السبب",

@@ -1,10 +1,11 @@
 import { Badge } from "@/components/ui/badge"
-import { dirFor, type Locale } from "@/i18n/locales"
-import { translator, type Translate } from "@/i18n/translate"
+import { type Locale } from "@/i18n/locales"
+import { type Translate } from "@/i18n/translate"
 import type { DocKind, Invoice } from "@/lib/data/types"
 import { formatDate, today } from "@/lib/dates"
 import { docNumber, iqd, plain, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { InvoiceSheet } from "./invoice-sheet"
 
 /**
  * The invoice itself, as shown on its page and on the print / PDF page. Written in whatever
@@ -144,15 +145,7 @@ function Line({ label, value, sub }: { label: string; value: string; sub?: strin
   )
 }
 
-/** The invoice as a white printed sheet in the given language and direction (light even in dark mode). */
+/** The invoice as a white printed sheet in the given language (light even in dark mode): see InvoiceSheet. */
 export function InvoicePaper({ invoice, lang, kind = "sale" }: { invoice: Invoice; lang: Locale; kind?: DocKind }) {
-  const dir = dirFor(lang)
-  return (
-    <div lang={lang} dir={dir} className={cn("paper bg-white p-10 text-neutral-900 print:p-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")} style={{ colorScheme: "light" }}>
-      {/* Everything a third bigger than on screen, so it reads well on paper */}
-      <div style={{ zoom: 1.35 }}>
-        <InvoiceDocument invoice={invoice} t={translator(lang)} locale={lang} kind={kind} className="border-0 bg-white p-0 shadow-none md:p-0" />
-      </div>
-    </div>
-  )
+  return <InvoiceSheet invoice={invoice} lang={lang} kind={kind} />
 }
