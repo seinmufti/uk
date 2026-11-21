@@ -153,8 +153,9 @@
 
 /* Printing an invoice or purchase: only the document, no menus or list */
 @media print {
-  aside,
-  header {
+  /* The app's bars, not the header printed on an invoice sheet */
+  aside:not(.paper *),
+  header:not(.paper *) {
     display: none !important;
   }
   main {
@@ -179,6 +180,17 @@ select option {
   body:has(> .print-root) {
     background: white;
     padding: 0;
+  }
+  /* Exactly like the A4 page in the preview: no browser margins, colours printed, one sheet wide */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  .print-root .paper {
+    width: 210mm;
+    min-height: 296mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 
