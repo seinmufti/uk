@@ -53,7 +53,7 @@ async function asAdmin<T>(work: (me: { userId: string }) => Promise<T>): Promise
   if (!me?.admin) return { ok: false, error: "Only an admin can do this." }
   try {
     await work(me)
-    revalidatePath("/accounts")
+    revalidatePath("/admin")
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }

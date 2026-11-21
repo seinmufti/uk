@@ -70,7 +70,7 @@ export function SettingsMenu({ admin, username }: { admin: boolean; username: st
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {admin && (
-          <DropdownMenuItem render={<Link href="/accounts" />}>
+          <DropdownMenuItem render={<Link href="/admin" />}>
             <Users /> {t("auth.accounts")}
           </DropdownMenuItem>
         )}
