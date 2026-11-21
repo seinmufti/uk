@@ -210,7 +210,6 @@ export function InvoiceForm({
               />
               <span className="flex flex-col items-end pe-1 text-end text-sm font-medium tabular-nums">
                 {money(lineTotal(row))}
-                {mode === "usd_iqd" && lineTotal(row) > 0 && <span className="text-xs font-normal text-muted-foreground">{other(lineTotal(row))}</span>}
               </span>
               <Button
                 type="button"
@@ -228,13 +227,6 @@ export function InvoiceForm({
             <Button type="button" variant="ghost" size="sm" onClick={() => setRows([...rows, blankRow()])}>
               <Plus /> {t("invoices.addRow")}
             </Button>
-            <div className="flex items-center gap-4 pe-10 text-sm">
-              <span className="text-muted-foreground">{t("invoices.grandTotal")}</span>
-              <span className="flex flex-col items-end font-semibold tabular-nums">
-                {money(linesTotal)}
-                {mode === "usd_iqd" && linesTotal > 0 && <span className="text-xs font-normal text-muted-foreground">{other(linesTotal)}</span>}
-              </span>
-            </div>
           </div>
         </div>
       </div>

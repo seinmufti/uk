@@ -4,7 +4,7 @@
 // `npm run dev` starts both. Each keeps its own build folder so the two don't clash.
 import { spawn } from "node:child_process"
 
-const LIVE_FEATURES = "invoices" // keep in step with NEXT_PUBLIC_UK_FEATURES on the live Vercel project
+const LIVE_FEATURES = "all" // keep in step with NEXT_PUBLIC_UK_FEATURES on the live Vercel project
 
 const run = (name, port, env) =>
   spawn("npx", ["next", "dev", "-p", String(port)], {

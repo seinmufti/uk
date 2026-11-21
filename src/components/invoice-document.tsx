@@ -75,7 +75,6 @@ export function InvoiceDocument({ invoice, t, locale = "en", kind = "sale", clas
             <th className="w-32 py-2 text-end font-medium">
               {t("common.total")} ({cur})
             </th>
-            {both && <th className="w-36 py-2 text-end font-medium">{t("common.total")} (IQD)</th>}
           </tr>
         </thead>
         <tbody>
@@ -86,19 +85,9 @@ export function InvoiceDocument({ invoice, t, locale = "en", kind = "sale", clas
               <td className="py-2 text-end tabular-nums">{plain(item.qty, 3)}</td>
               <td className="py-2 text-end tabular-nums"><span dir="ltr">{money(item.unit_price_usd)}</span></td>
               <td className="py-2 text-end tabular-nums"><span dir="ltr">{money(item.total_usd)}</span></td>
-              {both && <td className="py-2 text-end tabular-nums"><span dir="ltr">{iqd(toIqd(item.total_usd))}</span></td>}
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={4} className="py-3 text-end font-medium">
-              {t("invoices.grandTotal")}
-            </td>
-            <td className="py-3 text-end font-semibold tabular-nums"><span dir="ltr">{money(invoice.subtotal_usd)}</span></td>
-            {both && <td className="py-3 text-end font-semibold tabular-nums"><span dir="ltr">{iqd(toIqd(invoice.subtotal_usd))}</span></td>}
-          </tr>
-        </tfoot>
       </table>
 
       <div className="ms-auto mt-4 grid max-w-sm gap-2 rounded-lg bg-muted/50 p-4 text-sm print:border">
@@ -117,7 +106,11 @@ export function InvoiceDocument({ invoice, t, locale = "en", kind = "sale", clas
           <span className="font-medium">
             {t(mode === "usd" ? (discounted ? "invoices.afterDiscountUsd" : "invoices.totalUsd") : discounted ? "invoices.afterDiscountIqd" : "invoices.totalIqd")}
           </span>
-          <span className="font-semibold tabular-nums"><bdi dir="ltr">{mode === "usd" ? usd(invoice.total_usd) : iqd(toIqd(invoice.total_usd))}</bdi></span>
+          <span className="flex flex-col items-end font-semibold tabular-nums">
+            <bdi dir="ltr">{mode === "usd" ? usd(invoice.total_usd) : iqd(toIqd(invoice.total_usd))}</bdi>
+            {/* The other currency, small (USD → IQD already lists the USD total above) */}
+            {!both && other(invoice.total_usd) && <bdi dir="ltr" className="text-xs font-normal text-muted-foreground">{other(invoice.total_usd)}</bdi>}
+          </span>
         </div>
         {invoice.amount_paid_usd > 0 && !paid && (
           <>
