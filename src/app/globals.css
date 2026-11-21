@@ -182,7 +182,7 @@ select option {
   }
 }
 
-/* Home tiles: on hover a long, thin light glides round the border and comes to rest along the top edge
+/* Home tiles: on hover a long, thin light glides round the border and comes to rest lighting the whole top edge
    (it doesn't light the whole border); the rest of the border fades in faintly at the same pace.
    --glow is the tile's colour (set per column). */
 @property --sweep {
@@ -191,9 +191,9 @@ select option {
   inherits: false;
 }
 @keyframes tile-glide {
-  from { --sweep: -380deg; opacity: 0; }
+  from { --sweep: -374deg; opacity: 0; }
   15% { opacity: 1; }
-  to { --sweep: -100deg; opacity: 1; }
+  to { --sweep: -84deg; opacity: 1; }
 }
 @keyframes tile-fade {
   from { opacity: 0; }
@@ -216,11 +216,11 @@ select option {
   background: conic-gradient(
     from var(--sweep),
     transparent 0deg,
-    color-mix(in oklab, var(--glow) 45%, transparent) 30deg,
-    color-mix(in oklab, var(--glow) 85%, transparent) 100deg,
-    var(--glow) 135deg,
-    #fff 145deg,
-    transparent 150deg
+    color-mix(in oklab, var(--glow) 45%, transparent) 4deg,
+    color-mix(in oklab, var(--glow) 85%, transparent) 40deg,
+    var(--glow) 150deg,
+    #fff 164deg,
+    transparent 168deg
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -234,6 +234,6 @@ select option {
 .glow-tile:hover::before { animation: tile-glide 0.9s cubic-bezier(0.22, 0.8, 0.25, 1) forwards; }
 .glow-tile:hover::after { animation: tile-fade 0.9s ease-out forwards; }
 @media (prefers-reduced-motion: reduce) {
-  .glow-tile:hover::before { animation: none; opacity: 1; --sweep: -100deg; }
+  .glow-tile:hover::before { animation: none; opacity: 1; --sweep: -84deg; }
   .glow-tile:hover::after { animation: none; opacity: 1; }
 }

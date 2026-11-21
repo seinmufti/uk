@@ -15,7 +15,7 @@ const run = (name, port, env) =>
 
 const children = [
   run("live", 3000, { NEXT_PUBLIC_UK_FEATURES: LIVE_FEATURES, UK_DIST_DIR: ".next" }),
-  run("demo", 3001, { UK_BASE_PATH: "/demo", NEXT_PUBLIC_UK_FEATURES: "all", UK_DIST_DIR: ".next-demo" }),
+  run("demo", 3001, { UK_BASE_PATH: "/demo", NEXT_PUBLIC_UK_FEATURES: "all", UK_DIST_DIR: ".next-demo", UK_DB_SCHEMA: "demo" }),
 ]
 
 const stop = () => children.forEach((c) => c.kill())

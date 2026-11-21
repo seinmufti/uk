@@ -1,0 +1,6 @@
+# Only what this project changes on the hosted Supabase project; everything else stays as set in the dashboard.
+project_id = "uk"
+
+[api]
+# The demo deployment keeps its own copy of every table in the "demo" schema, so demo and live data never mix
+schemas = ["public", "graphql_public", "demo"]

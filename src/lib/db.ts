@@ -8,7 +8,11 @@ const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
 /** True once the Supabase project is set in .env.local. */
 export const DB_READY = !!URL && !!KEY
 
-const make = (headers?: Record<string, string>) => createClient(URL, KEY, { auth: { persistSession: false }, global: { headers } })
+/** Which set of tables: "public" for the live app, "demo" for the demo (UK_DB_SCHEMA), so their data never mix. */
+export const DB_SCHEMA = process.env.UK_DB_SCHEMA || "public"
+
+const make = (headers?: Record<string, string>) =>
+  createClient(URL, KEY, { auth: { persistSession: false }, db: { schema: DB_SCHEMA as "public" /* same tables either way */ }, global: { headers } })
 
 let client: SupabaseClient | null = null
 
