@@ -97,10 +97,10 @@ export function DebtsView({
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{formatDate(inv.date, locale)}</TableCell>
                   <TableCell className={cn("hidden md:table-cell", overdue && "font-medium text-red-700 dark:text-red-400")}>{formatDate(inv.due_date, locale)}</TableCell>
-                  <TableCell className="text-end tabular-nums"><Amount usd={inv.total_usd} rate={inv.rate_per_100} /></TableCell>
-                  <TableCell className="hidden text-end tabular-nums sm:table-cell"><Amount usd={inv.amount_paid_usd} rate={inv.rate_per_100} /></TableCell>
+                  <TableCell className="text-end tabular-nums"><Amount usd={inv.total_usd} rate={inv.rate_per_100} mode={inv.currency_mode} /></TableCell>
+                  <TableCell className="hidden text-end tabular-nums sm:table-cell"><Amount usd={inv.amount_paid_usd} rate={inv.rate_per_100} mode={inv.currency_mode} /></TableCell>
                   <TableCell className="text-end tabular-nums">
-                    <span className="font-medium"><Amount usd={left} rate={inv.rate_per_100} /></span>
+                    <span className="font-medium"><Amount usd={left} rate={inv.rate_per_100} mode={inv.currency_mode} /></span>
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">

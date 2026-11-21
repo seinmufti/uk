@@ -4,12 +4,12 @@ import { Amount } from "@/components/amount"
 import { buttonVariants } from "@/components/ui/button"
 import { getLocale, getT } from "@/i18n/server"
 import { formatDate } from "@/lib/dates"
-import type { Receipt } from "@/lib/data/types"
+import type { CurrencyMode, Receipt } from "@/lib/data/types"
 import { isEnabled } from "@/lib/features"
 import { receiptNumber } from "@/lib/data/receipts"
 
 /** The receipts recorded against an invoice, with a button to record another while something is owed. */
-export async function DocPayments({ receipts, recordHref }: { receipts: Receipt[]; recordHref: string | null }) {
+export async function DocPayments({ receipts, recordHref, mode }: { receipts: Receipt[]; recordHref: string | null; mode?: CurrencyMode }) {
   if (!isEnabled("receipts")) return null
   const [t, locale] = await Promise.all([getT(), getLocale()])
   return (
@@ -30,7 +30,7 @@ export async function DocPayments({ receipts, recordHref }: { receipts: Receipt[
               <span className="font-mono">{receiptNumber(r.kind, r.number)}</span>
               <span className="text-muted-foreground"> · {formatDate(r.date, locale)}</span>
             </span>
-            <Amount usd={r.amount_usd} rate={r.rate_per_100} className="font-medium" />
+            <Amount usd={r.amount_usd} rate={r.rate_per_100} mode={mode} className="font-medium" />
           </Link>
         ))}
       </div>

@@ -33,7 +33,7 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
 
       <InvoiceDocument invoice={invoice} t={t} locale={locale} />
       {/* Money received against this invoice; a new receipt opens already pointed at it */}
-      <DocPayments receipts={receipts} recordHref={invoice.status === "paid" ? null : `/receipts/new?kind=in&invoice=${id}`} />
+      <DocPayments receipts={receipts} mode={invoice.currency_mode} recordHref={invoice.status === "paid" ? null : `/receipts/new?kind=in&invoice=${id}`} />
     </div>
   )
 }

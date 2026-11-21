@@ -28,7 +28,8 @@ export function InvoiceDocument({ invoice, t, locale = "en", kind = "sale", clas
   const pair = (n: number) => (both ? `${usd(n)} · ${iqd(toIqd(n))}` : main(n))
   const discounted = invoice.discount_usd > 0
   // The other currency than the totals' (USD for IQD totals, IQD for USD totals)
-  const other = (n: number) => (!invoice.rate_per_100 ? "" : mode === "usd" ? iqd(toIqd(n)) : usd(n))
+  // Only USD → IQD invoices show the other currency (USD under the IQD totals); USD-only and IQD-only never do
+  const other = (n: number) => (mode !== "usd_iqd" || !invoice.rate_per_100 ? "" : usd(n))
 
   return (
     <div className={cn("rounded-xl border bg-card p-5 shadow-sm md:p-8 print:border-0 print:p-0 print:shadow-none", className)}>
@@ -102,7 +103,7 @@ export function InvoiceDocument({ invoice, t, locale = "en", kind = "sale", clas
         ) : (
           mode === "usd_iqd" && <Line label={t("invoices.subtotalUsd")} value={usd(invoice.total_usd)} />
         )}
-        {mode !== "usd" && <Line label={t("invoices.exchangeRate")} value={plain(invoice.rate_per_100, 0)} />}
+        {mode === "usd_iqd" && <Line label={t("invoices.exchangeRate")} value={plain(invoice.rate_per_100, 0)} />}
         <div className={cn("flex justify-between gap-4 text-base", mode !== "usd" && "border-t pt-2")}>
           <span className="font-medium">
             {t(mode === "usd" ? (discounted ? "invoices.afterDiscountUsd" : "invoices.totalUsd") : discounted ? "invoices.afterDiscountIqd" : "invoices.totalIqd")}

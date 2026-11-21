@@ -95,7 +95,8 @@ export function InvoiceForm({
   const dueLines = Math.max(0, netLines - paidLines)
   const coversTotal = payment === "part" && netLines > 0 && num(paidText) >= netLines
   // The same amount in the other currency (shown small next to amounts typed in one)
-  const other = (n: number) => (!num(rate) ? "" : inIqd ? usd(iqdToUsd(n, num(rate))) : iqd(usdToIqd(n, num(rate))))
+  // Only USD → IQD shows the other currency; USD-only and IQD-only invoices never do
+  const other = (n: number) => (mode !== "usd_iqd" || !num(rate) ? "" : iqd(usdToIqd(n, num(rate))))
   const owesSomething = payment !== "full" && !coversTotal
   const paidBox = useRef<HTMLDivElement>(null)
 

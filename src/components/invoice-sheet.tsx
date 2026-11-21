@@ -26,7 +26,8 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
   const cur = mode === "iqd" ? "IQD" : "USD"
   // The totals' main currency (IQD for USD → IQD and IQD invoices), and the other one
   const main = (n: number) => (mode === "usd" ? usd(n) : iqd(toIqd(n)))
-  const other = (n: number) => (!invoice.rate_per_100 ? null : mode === "usd" ? iqd(toIqd(n)) : usd(n))
+  // USD → IQD invoices show both currencies; USD-only and IQD-only ones never show the other
+  const other = (n: number) => (mode !== "usd_iqd" || !invoice.rate_per_100 ? null : usd(n))
   const due = Math.max(0, invoice.total_usd - invoice.amount_paid_usd)
   const discounted = invoice.discount_usd > 0
 
@@ -34,7 +35,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
     <div
       lang={lang}
       dir={dir}
-      className={cn("paper flex min-h-[1123px] flex-col bg-white px-10 py-8 text-[13px] text-neutral-900", dir === "rtl" && "font-[family-name:var(--font-arabic)]")}
+      className={cn("paper flex min-h-[1123px] flex-col bg-white p-[12mm] text-[13px] text-neutral-900 print:min-h-[273mm] print:p-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")}
       style={{ colorScheme: "light" }}
     >
       {/* Header: Kurdish name · logo · English name */}
@@ -113,7 +114,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
         </thead>
         <tbody>
           {invoice.items.map((item, i) => (
-            <tr key={item.id ?? i}>
+            <tr key={item.id ?? i} className="break-inside-avoid">
               <td className="border border-neutral-300 px-2 py-1.5 text-center text-neutral-500">{i + 1}</td>
               <td className="border border-neutral-300 px-2 py-1.5">{item.description}</td>
               <td className="border border-neutral-300 px-2 py-1.5 text-center tabular-nums">{plain(item.qty, 3)}</td>
@@ -128,8 +129,8 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
         </tbody>
       </table>
 
-      {/* Notes beside the totals */}
-      <section className="mt-5 grid grid-cols-[1fr_300px] items-start gap-6">
+      {/* Notes beside the totals: never split across two pages (moves to the next page whole) */}
+      <section className="mt-5 grid break-inside-avoid grid-cols-[1fr_300px] items-start gap-6">
         <div className="relative min-h-32 rounded-xl border-2 border-neutral-400 p-4 pt-5">
           <span className="absolute -top-3 end-4 rounded bg-neutral-800 px-2 py-0.5 text-xs font-semibold text-white">{t("common.notes")}</span>
           <p className="whitespace-pre-wrap">{invoice.notes}</p>
@@ -142,7 +143,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
             </>
           )}
           {mode === "usd_iqd" && <Sum label={t(discounted ? "invoices.afterDiscountUsd" : "invoices.totalUsd")} value={usd(invoice.total_usd)} />}
-          {mode !== "usd" && <Sum label={t("invoices.exchangeRate")} value={plain(invoice.rate_per_100, 0)} />}
+          {mode === "usd_iqd" && <Sum label={t("invoices.exchangeRate")} value={plain(invoice.rate_per_100, 0)} />}
           <Sum
             strong
             label={t(mode === "usd" ? (discounted ? "invoices.afterDiscountUsd" : "invoices.totalUsd") : discounted ? "invoices.afterDiscountIqd" : "invoices.totalIqd")}
@@ -155,7 +156,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale" }: { invoice: Invoic
       </section>
 
       {/* Signatures */}
-      <section className="mt-auto grid grid-cols-2 gap-16 pt-16 pb-4">
+      <section className="mt-auto grid break-inside-avoid grid-cols-2 gap-16 pt-16 pb-4">
         <div>
           <div className="text-sm font-semibold">{t("sheet.accountantSignature")}:</div>
           <div className="mt-12 border-b border-dashed border-neutral-500" />

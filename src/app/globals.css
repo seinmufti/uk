@@ -181,14 +181,13 @@ select option {
     background: white;
     padding: 0;
   }
-  /* Exactly like the A4 page in the preview: no browser margins, colours printed, one sheet wide */
+  /* Like the A4 page in the preview: the same 12mm margin on every side of every page, colours printed */
   @page {
     size: A4;
-    margin: 0;
+    margin: 12mm;
   }
   .print-root .paper {
-    width: 210mm;
-    min-height: 296mm;
+    width: auto;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

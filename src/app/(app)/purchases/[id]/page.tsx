@@ -42,7 +42,7 @@ export default async function PurchasePage({ params }: PageProps<"/purchases/[id
 
       <InvoiceDocument invoice={p} t={t} locale={locale} kind="purchase" />
       {/* Money paid to the supplier against this purchase */}
-      <DocPayments receipts={receipts} recordHref={debtId ? `/receipts/new?kind=out&debt=${debtId}` : null} />
+      <DocPayments receipts={receipts} mode={p.currency_mode} recordHref={debtId ? `/receipts/new?kind=out&debt=${debtId}` : null} />
     </div>
   )
 }
