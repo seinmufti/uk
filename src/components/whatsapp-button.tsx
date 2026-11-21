@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/i18n/provider"
-import { sheetToPages, stackPages, whatsappNumber } from "@/lib/sheet-images"
+import { sheetToPages, whatsappNumber } from "@/lib/sheet-images"
 
 function WhatsAppIcon() {
   return (
@@ -16,9 +16,9 @@ function WhatsAppIcon() {
 }
 
 /**
- * Sends an invoice on WhatsApp as a picture: every A4 page becomes a high-quality PNG. On a computer it is
- * copied to the clipboard (pages one under the other) and the customer's WhatsApp chat opens: press Ctrl+V,
- * then send. On a phone the share sheet opens with the pages attached.
+ * Sends an invoice on WhatsApp as pictures, one high-quality PNG per A4 page; nothing is downloaded. On a
+ * computer page 1 is copied and the customer's WhatsApp chat opens: Ctrl+V, then "Copy page 2" for the next
+ * one, and so on. On a phone the share sheet opens with every page attached.
  */
 export function WhatsAppButton({ sheet, phone, name }: { sheet: React.ReactNode; phone: string | null; name: string }) {
   const { t } = useI18n()
@@ -68,11 +68,24 @@ export function WhatsAppButton({ sheet, phone, name }: { sheet: React.ReactNode;
       tab.opener = null
       return true
     }
+    // The clipboard holds one picture at a time: page 1 now, then a button copies each next page
+    // (a click each time, which the browser needs before it lets the clipboard be written)
+    const copyNext = (pages: Blob[], i: number) =>
+      navigator.clipboard
+        .write([new ClipboardItem({ "image/png": pages[i] })])
+        .then(() => announce(pages, i))
+        .catch(() => toast.error(t("whatsapp.failed")))
+    const announce = (pages: Blob[], i: number) => {
+      const next = i + 1 < pages.length ? { label: t("whatsapp.copyPage", { page: i + 2, count: pages.length }), onClick: () => void copyNext(pages, i + 1) } : undefined
+      const message = pages.length === 1 ? t("whatsapp.copied") : t(next ? "whatsapp.copiedPage" : "whatsapp.copiedLast", { page: i + 1, count: pages.length })
+      toast.success(message, { action: next, duration: next ? 120_000 : 8_000 })
+    }
     navigator.clipboard
-      .write([new ClipboardItem({ "image/png": pagesPromise.then(stackPages) })])
-      .then(() => {
-        const opened = openChat()
-        toast.success(t("whatsapp.copied"), opened ? undefined : { action: { label: t("whatsapp.openChat"), onClick: openChat }, duration: 20_000 })
+      .write([new ClipboardItem({ "image/png": pagesPromise.then((pages) => pages[0]) })])
+      .then(async () => {
+        const pages = await pagesPromise
+        announce(pages, 0)
+        if (!openChat()) toast(t("whatsapp.openChat"), { action: { label: t("whatsapp.openChat"), onClick: openChat }, duration: 20_000 })
       })
       .catch(() => toast.error(t("whatsapp.failed")))
       .finally(() => setBusy(false))

@@ -52,6 +52,9 @@ const ar: DeepPartial<Messages> = {
     original: "الأصل",
   },
   whatsapp: {
+    copiedLast: "تم نسخ الصفحة {page} من {count}. اضغط Ctrl+V في المحادثة ثم أرسل.",
+    copiedPage: "تم نسخ الصفحة {page} من {count}. اضغط Ctrl+V في المحادثة ثم انسخ الصفحة التالية.",
+    copyPage: "نسخ الصفحة {page} من {count}",
     copied: "تم نسخ الفاتورة. اضغط Ctrl+V في محادثة واتساب ثم أرسل.",
     openChat: "فتح المحادثة",
     making: "جارٍ التحضير…",

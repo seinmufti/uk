@@ -8,6 +8,6 @@ export const COMPANY = {
   taglineKu: "بۆ دروستکردنی دەرگا و پەنجەرە",
   nameEn: "UK Aluminum Factory",
   taglineEn: "Doors & windows manufacturing",
-  phones: ["0750 962 4141"],
+  phones: ["0750 962 4141", "+964 750 484 6242"],
   address: "هەولێر - شەقامی ١٠٠ مەتری",
 }

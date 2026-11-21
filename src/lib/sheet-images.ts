@@ -63,22 +63,6 @@ export async function sheetToPages(sheet: HTMLElement): Promise<Blob[]> {
   return pages
 }
 
-/** All pages one under the other, for the clipboard (it holds a single picture). */
-export async function stackPages(pages: Blob[]): Promise<Blob> {
-  if (pages.length === 1) return pages[0]
-  const images = await Promise.all(pages.map((b) => createImageBitmap(b)))
-  const canvas = document.createElement("canvas")
-  canvas.width = images[0].width
-  canvas.height = images.reduce((s, i) => s + i.height, 0)
-  const ctx = canvas.getContext("2d")!
-  let y = 0
-  for (const img of images) {
-    ctx.drawImage(img, 0, y)
-    y += img.height
-  }
-  return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"))
-}
-
 /** A phone number as WhatsApp wants it: digits with the country code (Iraqi 07xx… → 9647xx…). */
 export function whatsappNumber(phone: string | null | undefined): string | null {
   if (!phone) return null

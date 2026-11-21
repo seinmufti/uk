@@ -51,6 +51,9 @@ const en = {
     original: "Original",
   },
   whatsapp: {
+    copiedLast: "Page {page} of {count} copied. Press Ctrl+V in the chat, then send.",
+    copiedPage: "Page {page} of {count} copied. Press Ctrl+V in the chat, then copy the next page.",
+    copyPage: "Copy page {page} of {count}",
     copied: "Invoice copied. Press Ctrl+V in the WhatsApp chat, then send.",
     openChat: "Open chat",
     making: "Preparing…",
