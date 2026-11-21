@@ -183,6 +183,7 @@ const ar: DeepPartial<Messages> = {
     backup: "تنزيل نسخة احتياطية",
   },
   receipts: {
+    edit: "تعديل الإيصال",
     title: "الوصولات",
     new: "وصل جديد",
     newIn: "الزبون",

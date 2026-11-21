@@ -182,6 +182,7 @@ const en = {
     backup: "Download backup",
   },
   receipts: {
+    edit: "Edit receipt",
     title: "Receipts",
     new: "New receipt",
     newIn: "Customer",

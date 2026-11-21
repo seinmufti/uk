@@ -183,6 +183,7 @@ const ckb: DeepPartial<Messages> = {
     backup: "داگرتنی باکئەپ",
   },
   receipts: {
+    edit: "دەستکاریکردنی پسوولەی پارە",
     title: "وەسڵەکان",
     new: "وەسڵی نوێ",
     newIn: "کڕیار",

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { saveReceipt } from "@/lib/actions/receipts"
 import { today } from "@/lib/dates"
-import type { OpenItem, Party, ReceiptKind } from "@/lib/data/types"
+import type { OpenItem, Party, Receipt, ReceiptKind } from "@/lib/data/types"
 import { iqd, num, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { AREA, Field, NativeSelect } from "./form-bits"
@@ -30,6 +30,7 @@ export function ReceiptForm({
   numbers,
   liveRate,
   preselect,
+  receipt,
 }: {
   kind: ReceiptKind
   customers: Party[]
@@ -39,6 +40,8 @@ export function ReceiptForm({
   liveRate: number | null
   /** "invoice:<id>" or "debt:<id>": what the receipt pays, chosen up front */
   preselect?: string
+  /** Changing an existing receipt: its current values */
+  receipt?: Receipt | null
 }) {
   const { t } = useI18n()
   const router = useRouter()
@@ -46,12 +49,15 @@ export function ReceiptForm({
   const [kind, setKind] = useState<ReceiptKind>(initialKind)
   const [parties, setParties] = useState({ in: initialCustomers, out: initialSuppliers })
   const start = preselect ? open[initialKind].find((i) => `${i.type}:${i.id}` === preselect) : undefined
-  const [partyId, setPartyId] = useState(start ? ((initialKind === "in" ? start.customer_id : start.supplier_id) ?? NONE) : NONE)
-  const [forKey, setForKey] = useState(start ? preselect! : NONE) // "invoice:<id>" | "debt:<id>" | ""
-  const [amount, setAmount] = useState(start ? String(start.remaining) : "")
-  const [date, setDate] = useState(today())
-  const [rate, setRate] = useState(String(liveRate ?? ""))
-  const [notes, setNotes] = useState("")
+  const editingFor = receipt?.invoice_id ? `invoice:${receipt.invoice_id}` : receipt?.debt_id ? `debt:${receipt.debt_id}` : NONE
+  const [partyId, setPartyId] = useState(
+    receipt ? ((receipt.kind === "in" ? receipt.customer_id : receipt.supplier_id) ?? NONE) : start ? ((initialKind === "in" ? start.customer_id : start.supplier_id) ?? NONE) : NONE,
+  )
+  const [forKey, setForKey] = useState(receipt ? editingFor : start ? preselect! : NONE) // "invoice:<id>" | "debt:<id>" | ""
+  const [amount, setAmount] = useState(receipt ? String(receipt.amount_usd) : start ? String(start.remaining) : "")
+  const [date, setDate] = useState(receipt?.date ?? today())
+  const [rate, setRate] = useState(String(receipt?.rate_per_100 ?? liveRate ?? ""))
+  const [notes, setNotes] = useState(receipt?.notes ?? "")
   const [newParty, setNewParty] = useState(false)
 
   const party = parties[kind].find((p) => p.id === partyId)
@@ -80,7 +86,7 @@ export function ReceiptForm({
     e.preventDefault()
     run(
       () =>
-        saveReceipt({
+        saveReceipt(receipt?.id ?? null, {
           kind,
           date,
           party_id: partyId,
@@ -94,7 +100,8 @@ export function ReceiptForm({
         }),
       {
         then: (saved) => {
-          toast.success(t("receipts.created", { number: numbers[kind] }))
+          if (receipt) toast.success(t("common.saved"))
+          else toast.success(t("receipts.created", { number: numbers[kind] }))
           router.push(`/receipts/${saved.id}`)
         },
       },
@@ -105,7 +112,7 @@ export function ReceiptForm({
   return (
     <form onSubmit={submit} className="mx-auto grid max-w-2xl gap-6 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t("receipts.new")}</h2>
+        <h2 className="text-lg font-semibold">{t(receipt ? "receipts.edit" : "receipts.new")}</h2>
         <span className="rounded-md bg-muted px-2 py-1 font-mono text-sm tabular-nums">{numbers[kind]}</span>
       </div>
 
