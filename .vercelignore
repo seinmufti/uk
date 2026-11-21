@@ -3,3 +3,4 @@
 .next-demo
 node_modules
 .env*.local
+backups
