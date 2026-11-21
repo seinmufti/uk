@@ -69,11 +69,9 @@ export function PartyDialog({
           <Field label={t("common.phone")}>
             <PhoneInput value={form.phone} onChange={(phone) => setForm({ ...form, phone })} />
           </Field>
-          {!isCustomer && (
-            <Field label={t("common.address")}>
-              <Input value={form.address} onChange={set("address")} />
-            </Field>
-          )}
+          <Field label={t("common.address")}>
+            <Input value={form.address} onChange={set("address")} />
+          </Field>
           <Field label={t("common.notes")}>
             <Textarea value={form.notes} onChange={set("notes")} rows={2} />
           </Field>
