@@ -13,7 +13,7 @@ import { formatDate, today } from "@/lib/dates"
 import { INVENTORY_KINDS, type InventoryItem, type InventoryKind } from "@/lib/data/types"
 import { num, plain } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
-import { Field, NativeSelect } from "./form-bits"
+import { Field } from "./form-bits"
 import { MoneyInput } from "./money-input"
 import { NumberInput } from "./number-input"
 import { FormDialog, useEditor } from "./form-dialog"
@@ -126,15 +126,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
           })
         }
       >
-        <Field label={t("common.type")}>
-          <NativeSelect value={form.kind} onChange={(e) => set("kind", e.target.value as InventoryKind)}>
-            {INVENTORY_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {t(`inventory.kindOne.${k}`)}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
+        {/* The type is the tab it was added from (Assets / Stock / Capital) */}
         <Field label={t("common.name")}>
           <Input value={form.name} onChange={(e) => set("name", e.target.value)} required autoFocus />
         </Field>
