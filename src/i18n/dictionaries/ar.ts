@@ -26,7 +26,7 @@ const ar: DeepPartial<Messages> = {
   },
   home: {
     title: "الرئيسية",
-    group: { finance: "المالية", contacts: "جهات التعامل", assets: "الأصول والمخزون", hr: "الموارد البشرية" },
+    group: { finance: "المالية", contacts: "جهات التعامل", assets: "الممتلكات", hr: "الموارد البشرية" },
     desc: {
       invoices: "فوترة الزبائن بالدولار والدينار",
       receipts: "مقبوضات من الزبائن ومدفوعات للموردين",
@@ -64,6 +64,14 @@ const ar: DeepPartial<Messages> = {
     ready: "تم حفظ ونسخ {count} صفحة. الصقها في المحادثة (Ctrl+V) ثم أرسل.",
     saved: "تم حفظ {count} صفحة. أرفقها في المحادثة ثم أرسل.",
     failed: "تعذّر إنشاء الصور. حاول مرة أخرى.",
+  },
+  wallet: {
+    title: "المحفظة",
+    balance: "الرصيد",
+    in: "وارد",
+    out: "صادر",
+    empty: "لا توجد حركات مالية بعد.",
+    kind: { capital: "رأس المال", receipt_in: "إيصال (زبون)", receipt_out: "إيصال (مورّد)", invoice: "فاتورة زبون", purchase: "فاتورة شراء", expense: "مصروف", debt_in: "دين سُدّد لنا", debt_out: "دين سددناه" },
   },
   printPage: {
     title: "طباعة / PDF",
@@ -332,7 +340,7 @@ const ar: DeepPartial<Messages> = {
     addDeduction: "إضافة خصم",
     bonus: "مكافأة",
     deduction: "خصم",
-    reason: "السبب",
+    reason: "ملاحظة (سبب ذلك)",
     reasonBonus: "مثلاً: ساعات إضافية، مكافأة العيد",
     reasonDeduction: "مثلاً: سلفة، أيام تأخير",
     addAdjustment: "إضافة مكافأة أو خصم",

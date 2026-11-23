@@ -38,7 +38,8 @@ export type DocKind = "sale" | "purchase"
 export type Purchase = Invoice & { sent_to_inventory: boolean }
 export type PurchaseRow = InvoiceRow & { sent_to_inventory: boolean }
 
-export const INVENTORY_KINDS = ["asset", "stock", "capital"] as const
+// In the order they show: capital, stock, assets
+export const INVENTORY_KINDS = ["capital", "stock", "asset"] as const
 export type InventoryKind = (typeof INVENTORY_KINDS)[number]
 export type InventoryItem = {
   id: string
@@ -49,7 +50,13 @@ export type InventoryItem = {
   date: string
   notes: string | null
   source_purchase_id: string | null
+  /** The currency the value was typed in, and the rate then (so IQD shows exactly as typed) */
+  currency: AmountCurrency
+  rate_per_100: number | null
 }
+
+/** The currency an amount was typed in (it is always stored in USD too) */
+export type AmountCurrency = "usd" | "iqd"
 
 export type DebtDirection = "receivable" | "payable"
 export type Debt = {
@@ -62,6 +69,8 @@ export type Debt = {
   due_date: string | null
   notes: string | null
   purchase_id: string | null
+  currency: AmountCurrency
+  rate_per_100: number | null
 }
 
 export const EXPENSE_CATEGORIES = ["rent", "utilities", "salaries", "fuel", "supplies", "maintenance", "marketing", "taxes", "other"] as const
@@ -74,6 +83,8 @@ export type Expense = {
   amount_usd: number
   recurring: boolean
   payroll_id: string | null
+  currency: AmountCurrency
+  rate_per_100: number | null
 }
 
 export type Employee = {
@@ -85,6 +96,9 @@ export type Employee = {
   start_date: string
   active: boolean
   notes: string | null
+  /** The currency the salary is set in, and the rate when it was set */
+  salary_currency: AmountCurrency
+  salary_rate: number | null
 }
 export type Leave = { id: string; employee_id: string; from_date: string; to_date: string; type: "paid" | "unpaid" | "sick"; notes: string | null }
 export type Absence = { id: string; employee_id: string; date: string; days: number; notes: string | null }
@@ -100,6 +114,9 @@ export type PayrollRow = {
   notes: string | null
   /** The bonuses and deductions that make up bonuses_usd / deductions_usd */
   items: PayrollItem[]
+  /** The employee's salary currency and rate, which the whole row is shown in */
+  currency: AmountCurrency
+  rate_per_100: number | null
 }
 export type PayrollItem = { id: string; kind: "bonus" | "deduction"; amount_usd: number; reason: string | null }
 
@@ -120,6 +137,8 @@ export type Receipt = {
   invoice_id: string | null
   debt_id: string | null
   notes: string | null
+  /** The currency the amount was typed in (the rate is rate_per_100) */
+  currency: AmountCurrency
   /** What it paid, e.g. "Invoice 0002", or the debt's note */
   for_label: string | null
 }

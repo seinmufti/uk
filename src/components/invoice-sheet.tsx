@@ -68,26 +68,18 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
         </div>
       </div>
 
-      {/* The invoice and who it is for */}
-      <section data-keep className="mt-5 grid grid-cols-2 gap-8 border-b-2 border-neutral-800 pb-4">
-        <dl className="grid content-start gap-2">
-          <Row label={t(sale ? "invoices.customer" : "purchases.supplier")}>
+      {/* Who it is for (one box) and the invoice itself (the other), the same size side by side */}
+      <section data-keep className="mt-5 grid grid-cols-2 gap-4">
+        <Box title={t(sale ? "invoices.customer" : "purchases.supplier")}>
+          <Row label={t("common.name")}>
             <span className="font-bold">{invoice.customer?.name ?? t(sale ? "invoices.noCustomer" : "purchases.noSupplier")}</span>
           </Row>
-          {invoice.customer?.phone && (
-            <Row label={t("common.phone")}>
-              <span dir="ltr">{invoice.customer.phone}</span>
-            </Row>
-          )}
-          {invoice.customer?.address && <Row label={t("common.address")}>{invoice.customer.address}</Row>}
-        </dl>
-        <dl className="grid content-start gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <span className="rounded bg-neutral-900 px-3 py-1 text-sm font-bold text-white">{t(variant === "quotation" ? "sheet.quotation" : sale ? "nav.invoices" : "nav.purchases")}</span>
-            <span className="text-sm text-neutral-500">{t("sheet.original")}</span>
-          </div>
+          <Row label={t("common.phone")}>{invoice.customer?.phone ? <span dir="ltr">{localPhone(invoice.customer.phone)}</span> : "—"}</Row>
+          <Row label={t("common.address")}>{invoice.customer?.address || "—"}</Row>
+        </Box>
+        <Box title={t(variant === "quotation" ? "sheet.quotation" : sale ? "nav.invoices" : "nav.purchases")}>
           <Row label={t(sale ? "invoices.number" : "purchases.number")}>
-            <span className="font-mono text-lg font-bold text-red-600" dir="ltr">
+            <span className="font-mono text-base font-bold text-red-600" dir="ltr">
               {docNumber(invoice.number)}
             </span>
           </Row>
@@ -98,20 +90,20 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
               {t(paid ? "invoices.status.paid" : invoice.amount_paid_usd > 0 ? "invoices.partlyPaid" : "invoices.status.unpaid")}
             </span>
           </Row>
-        </dl>
+        </Box>
       </section>
 
       {/* The lines */}
       <table className="mt-5 w-full border-collapse border border-neutral-400 text-[13px]">
         <thead>
-          <tr data-keep className="bg-neutral-100 text-neutral-700">
-            <th className="w-10 border border-neutral-400 px-2 py-1.5 text-center font-semibold">#</th>
-            <th className="border border-neutral-400 px-2 py-1.5 text-start font-semibold">{t("common.description")}</th>
-            <th className="w-16 border border-neutral-400 px-2 py-1.5 text-center font-semibold">{t("common.qty")}</th>
-            <th className="w-32 border border-neutral-400 px-2 py-1.5 text-end font-semibold">
+          <tr data-keep className="bg-amber-500 text-neutral-950">
+            <th className="w-10 border border-amber-600 px-2 py-1.5 text-center font-semibold">#</th>
+            <th className="border border-amber-600 px-2 py-1.5 text-start font-semibold">{t("common.description")}</th>
+            <th className="w-16 border border-amber-600 px-2 py-1.5 text-center font-semibold">{t("common.qty")}</th>
+            <th className="w-32 border border-amber-600 px-2 py-1.5 text-end font-semibold">
               {t("invoices.cost")} ({cur})
             </th>
-            <th className="w-36 border border-neutral-400 px-2 py-1.5 text-end font-semibold">
+            <th className="w-36 border border-amber-600 px-2 py-1.5 text-end font-semibold">
               {t("common.total")} ({cur})
             </th>
           </tr>
@@ -176,10 +168,23 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
   )
 }
 
+/** Iraqi numbers written the local way: +964 750 123 4567 → 0750 123 4567 */
+const localPhone = (phone: string) => phone.replace(/^\s*(?:\+|00)964\s*/, "0")
+
+/** A titled box with label / value lines (the customer box and the invoice box). */
+function Box({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-md border border-neutral-400">
+      <div className="bg-neutral-900 px-3 py-1.5 text-sm font-bold text-white">{title}</div>
+      <dl className="grid gap-1.5 p-3">{children}</dl>
+    </div>
+  )
+}
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-baseline gap-2">
-      <dt className="shrink-0 text-neutral-500">{label}:</dt>
+    <div className="grid grid-cols-[6.5rem_1fr] items-baseline gap-2">
+      <dt className="text-neutral-500">{label}</dt>
       <dd className="min-w-0 border-b border-dotted border-neutral-400 pb-0.5">{children}</dd>
     </div>
   )

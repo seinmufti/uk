@@ -27,13 +27,14 @@ import {
   savePayrollItem,
 } from "@/lib/actions/hr"
 import { formatDate, today } from "@/lib/dates"
-import type { Absence, Employee, Leave, PayrollItem, PayrollRow } from "@/lib/data/types"
-import { num, plain, round2 } from "@/lib/money"
+import type { Absence, AmountCurrency, Employee, Leave, PayrollItem, PayrollRow } from "@/lib/data/types"
+import { num, plain, round6 } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { Amount } from "./amount"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { MoneyInput } from "./money-input"
+import { useRate } from "./rate-provider"
 import { NumberInput } from "./number-input"
 import { PageHeader } from "./page-header"
 import { PhoneInput } from "./phone-input"
@@ -64,12 +65,15 @@ export function HrTabs() {
 
 // ---- Employee form ----
 
-const blankEmployee = () => ({ name: "", position: "", phone: "", base_salary_usd: "", start_date: today(), active: true, notes: "" })
+// salary_currency / salary_rate: what the salary was typed in, and the rate then (an IQD salary stays exact)
+const blankEmployee = () => ({ name: "", position: "", phone: "", base_salary_usd: "", salary_currency: "usd" as AmountCurrency, salary_rate: null as number | null, start_date: today(), active: true, notes: "" })
 const employeeForm = (e: Employee) => ({
   name: e.name,
   position: e.position ?? "",
   phone: e.phone ?? "",
   base_salary_usd: String(e.base_salary_usd),
+  salary_currency: e.salary_currency ?? "usd",
+  salary_rate: e.salary_rate,
   start_date: e.start_date,
   active: e.active,
   notes: e.notes ?? "",
@@ -79,6 +83,7 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
   const { t } = useI18n()
   const { pending, run } = useAction()
   const { form, set } = editor
+  const todayRate = useRate()
   return (
     <FormDialog
       title={editor.id ? t("hr.editEmployee") : t("hr.newEmployee")}
@@ -86,7 +91,7 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
       onOpenChange={editor.setOpen}
       pending={pending}
       onSubmit={() =>
-        run(() => saveEmployee(editor.id, { ...form, base_salary_usd: num(form.base_salary_usd), position: form.position || null, phone: form.phone || null, notes: form.notes || null }), {
+        run(() => saveEmployee(editor.id, { ...form, base_salary_usd: num(form.base_salary_usd), salary_rate: form.salary_rate || todayRate, position: form.position || null, phone: form.phone || null, notes: form.notes || null }), {
           success: t("common.saved"),
           then: () => editor.setOpen(false),
         })
@@ -103,7 +108,7 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
           <PhoneInput value={form.phone} onChange={(phone) => set("phone", phone)} />
         </Field>
         <Field label={t("hr.salary")}>
-          <MoneyInput value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} required />
+          <MoneyInput value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} currency={form.salary_currency} onCurrencyChange={(c) => set("salary_currency", c)} rate={form.salary_rate} required />
         </Field>
         <Field label={t("hr.startDate")}>
           <Input type="date" value={form.start_date} onChange={(e) => set("start_date", e.target.value)} required />
@@ -169,7 +174,7 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{e.position || "—"}</TableCell>
                 <TableCell className="hidden md:table-cell">{formatDate(e.start_date, locale)}</TableCell>
-                <TableCell className="text-end tabular-nums"><Amount usd={e.base_salary_usd} /></TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={e.base_salary_usd} currency={e.salary_currency} rate={e.salary_rate} /></TableCell>
                 <TableCell onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon-sm" aria-label={t("common.edit")} onClick={() => editor.openEdit(e.id, employeeForm(e))}>
@@ -225,7 +230,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
             {[employee.position, employee.phone].filter(Boolean).join(" · ") || "—"}
           </div>
           <div className="mt-2 text-sm">
-            {t("hr.salary")}: <span className="font-medium tabular-nums"><Amount usd={employee.base_salary_usd} /></span> · {t("hr.startDate")}: {formatDate(employee.start_date, locale)}
+            {t("hr.salary")}: <span className="font-medium tabular-nums"><Amount usd={employee.base_salary_usd} currency={employee.salary_currency} rate={employee.salary_rate} /></span> · {t("hr.startDate")}: {formatDate(employee.start_date, locale)}
           </div>
           {employee.notes && <p className="mt-2 text-sm text-muted-foreground">{employee.notes}</p>}
         </div>
@@ -372,11 +377,27 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
 type ItemForm = { kind: PayrollItem["kind"]; amount: string; reason: string }
 const blankItem = (): ItemForm => ({ kind: "bonus", amount: "", reason: "" })
 
+/** What each bonus / deduction was for, small under its total */
+function Notes({ items }: { items: PayrollItem[] }) {
+  const notes = items.map((i) => i.reason).filter(Boolean)
+  if (!notes.length) return null
+  return (
+    <ul className="mt-0.5 grid justify-items-end text-xs font-normal text-muted-foreground">
+      {notes.map((n, i) => (
+        <li key={i} className="max-w-48 truncate" title={n!}>
+          {n}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /** One employee's month: read-only totals; bonuses and deductions are added through a small form. */
 function PayrollLine({ row, onAdd, onOpen }: { row: PayrollRow; onAdd: (kind: PayrollItem["kind"]) => void; onOpen: () => void }) {
   const { t, locale } = useI18n()
   const { pending, run } = useAction()
-  const net = round2(row.base_usd - row.deductions_usd + row.bonuses_usd)
+  // To 6 decimals: an IQD salary shows to the dinar
+  const net = round6(row.base_usd - row.deductions_usd + row.bonuses_usd)
   return (
     <TableRow>
       <TableCell className="font-medium">
@@ -386,12 +407,18 @@ function PayrollLine({ row, onAdd, onOpen }: { row: PayrollRow; onAdd: (kind: Pa
         {row.items.length > 0 && <div className="text-xs font-normal text-muted-foreground">{t("hr.entries", { count: row.items.length })}</div>}
       </TableCell>
       <TableCell className="text-end">
-        <Amount usd={row.base_usd} />
+        <Amount usd={row.base_usd} currency={row.currency} rate={row.rate_per_100} />
       </TableCell>
-      <TableCell className="text-end text-red-700 dark:text-red-400">{row.deductions_usd > 0 ? <Amount usd={row.deductions_usd} /> : "—"}</TableCell>
-      <TableCell className="text-end text-emerald-700 dark:text-emerald-400">{row.bonuses_usd > 0 ? <Amount usd={row.bonuses_usd} /> : "—"}</TableCell>
+      <TableCell className="text-end text-red-700 dark:text-red-400">
+        {row.deductions_usd > 0 ? <Amount usd={row.deductions_usd} currency={row.currency} rate={row.rate_per_100} /> : "—"}
+        <Notes items={row.items.filter((i) => i.kind === "deduction")} />
+      </TableCell>
+      <TableCell className="text-end text-emerald-700 dark:text-emerald-400">
+        {row.bonuses_usd > 0 ? <Amount usd={row.bonuses_usd} currency={row.currency} rate={row.rate_per_100} /> : "—"}
+        <Notes items={row.items.filter((i) => i.kind === "bonus")} />
+      </TableCell>
       <TableCell className="text-end font-semibold">
-        <Amount usd={net} />
+        <Amount usd={net} currency={row.currency} rate={row.rate_per_100} />
       </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-1">
@@ -524,7 +551,7 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
           ))}
         </div>
         <Field label={t("common.amount")}>
-          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required autoFocus />
+          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} currency={editingRow?.currency} rate={editingRow?.rate_per_100} required autoFocus />
         </Field>
         <Field label={t("hr.reason")}>
           <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t(form.kind === "bonus" ? "hr.reasonBonus" : "hr.reasonDeduction")} />
@@ -544,7 +571,7 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
               <div key={item.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
                 <div className="min-w-0">
                   <div className={item.kind === "bonus" ? "font-medium text-emerald-700 dark:text-emerald-400" : "font-medium text-red-700 dark:text-red-400"}>
-                    {t(item.kind === "bonus" ? "hr.bonus" : "hr.deduction")} · <Amount usd={item.amount_usd} inline />
+                    {t(item.kind === "bonus" ? "hr.bonus" : "hr.deduction")} · <Amount usd={item.amount_usd} currency={listed.currency} rate={listed.rate_per_100} inline />
                   </div>
                   {item.reason && <div className="truncate text-xs text-muted-foreground">{item.reason}</div>}
                 </div>

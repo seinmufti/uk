@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, Banknote, Building2, CalendarCheck, FileText, HandCoins, Package, Plus, Receipt, ShoppingCart, Truck, Users, UserSquare2 } from "lucide-react"
+import { ArrowLeftRight, BarChart3, Banknote, Building2, CalendarCheck, FileText, HandCoins, Package, Plus, Receipt, ShoppingCart, Truck, Users, UserSquare2, Wallet } from "lucide-react"
 import Link from "next/link"
 import { getT } from "@/i18n/server"
 import type { MessageKey } from "@/i18n/types"
@@ -54,9 +54,10 @@ const GROUPS: { title: MessageKey; color: keyof typeof COLORS; tiles: Tile[] }[]
     title: "home.group.assets",
     color: "assets",
     tiles: [
-      { href: "/inventory?tab=asset", label: "inventory.kind.asset", icon: Building2 },
-      { href: "/inventory?tab=stock", label: "inventory.kind.stock", icon: Package },
+      { href: "/wallet", label: "wallet.title", icon: Wallet },
       { href: "/inventory?tab=capital", label: "inventory.kind.capital", icon: Banknote },
+      { href: "/inventory?tab=stock", label: "inventory.kind.stock", icon: Package },
+      { href: "/inventory?tab=asset", label: "inventory.kind.asset", icon: Building2 },
     ],
   },
   {

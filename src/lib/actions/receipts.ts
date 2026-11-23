@@ -14,6 +14,8 @@ const ReceiptSchema = z.object({
   date: z.string().min(1),
   party_id: z.guid("Choose who paid / who was paid"),
   amount_usd: z.coerce.number().positive("Amount is required"),
+  // The currency the amount was typed in (its rate is rate_per_100)
+  currency: z.enum(["usd", "iqd"]).default("usd"),
   rate_per_100: z.coerce.number().positive("Exchange rate is required"),
   method: z.enum(RECEIPT_METHODS),
   invoice_id: z.guid().nullable(),
@@ -38,7 +40,8 @@ async function saveReceiptAction(id: string | null, input: ReceiptInput): Promis
   try {
     const { party_id, ...v } = ReceiptSchema.parse(input)
     const party = must(await db().from(v.kind === "in" ? "customers" : "suppliers").select("id, name").eq("id", party_id).single())
-    const amount = round2(v.amount_usd)
+    // To 6 decimals, so an amount typed in IQD comes back exactly
+    const amount = round6(v.amount_usd)
     const old = id ? must(await db().from("receipts").select("kind, number, amount_usd, invoice_id, debt_id").eq("id", id).single()) : null
     // What this receipt already paid on a target, which a change doesn't count twice
     const already = (target: "invoice_id" | "debt_id", targetId: string | null) => (old && targetId && old[target] === targetId ? num(old.amount_usd) : 0)

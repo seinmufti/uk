@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
 import { EXPENSE_CATEGORIES, INVENTORY_KINDS } from "@/lib/data/types"
-import { round2 } from "@/lib/money"
+import { round6 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
 // Inventory, debts and expenses: simple rows with add / edit / delete.
@@ -36,9 +36,12 @@ const InventorySchema = z.object({
   kind: z.enum(INVENTORY_KINDS),
   name: z.string().trim().min(1, "Name is required"),
   qty: z.coerce.number().min(0),
-  value_usd: z.coerce.number(),
+  value_usd: z.coerce.number().transform(round6),
   date: z.string().min(1),
   notes: optionalText,
+  // The currency it was typed in and the rate then (amounts are in USD, to 6 decimals, so IQD comes back exactly)
+  currency: z.enum(["usd", "iqd"]).default("usd"),
+  rate_per_100: z.coerce.number().positive().nullable().optional(),
 })
 export type InventoryInput = z.input<typeof InventorySchema>
 const INVENTORY_PATHS = ["/inventory", "/reports"]
@@ -57,10 +60,13 @@ const deleteInventoryItemAction = async (id: string) => remove("inventory_items"
 const DebtSchema = z.object({
   direction: z.enum(["receivable", "payable"]),
   party: z.string().trim().min(1, "Name is required"),
-  amount_usd: z.coerce.number().positive("Amount is required"),
+  amount_usd: z.coerce.number().positive("Amount is required").transform(round6),
   date: z.string().min(1),
   due_date: z.string().nullable().optional(),
   notes: optionalText,
+  // The currency it was typed in and the rate then (amounts are in USD, to 6 decimals, so IQD comes back exactly)
+  currency: z.enum(["usd", "iqd"]).default("usd"),
+  rate_per_100: z.coerce.number().positive().nullable().optional(),
 })
 export type DebtInput = z.input<typeof DebtSchema>
 const DEBT_PATHS = ["/debts", "/reports"]
@@ -79,7 +85,7 @@ async function payDebtAction(id: string, amount: number): Promise<ActionResult> 
   try {
     if (!(amount > 0)) throw new Error("Amount is required")
     const debt = must(await db().from("debts").select("amount_usd, paid_usd").eq("id", id).single())
-    const paid = Math.min(Number(debt.amount_usd), round2(Number(debt.paid_usd) + amount))
+    const paid = Math.min(Number(debt.amount_usd), round6(Number(debt.paid_usd) + amount))
     must(await db().from("debts").update({ paid_usd: paid }).eq("id", id))
     for (const p of DEBT_PATHS) revalidatePath(p)
     return { ok: true }
@@ -95,8 +101,11 @@ const ExpenseSchema = z.object({
   date: z.string().min(1),
   category: z.enum(EXPENSE_CATEGORIES),
   description: z.string().trim().min(1, "Description is required"),
-  amount_usd: z.coerce.number().positive("Amount is required"),
+  amount_usd: z.coerce.number().positive("Amount is required").transform(round6),
   recurring: z.boolean(),
+  // The currency it was typed in and the rate then (amounts are in USD, to 6 decimals, so IQD comes back exactly)
+  currency: z.enum(["usd", "iqd"]).default("usd"),
+  rate_per_100: z.coerce.number().positive().nullable().optional(),
 })
 export type ExpenseInput = z.input<typeof ExpenseSchema>
 const EXPENSE_PATHS = ["/expenses", "/reports"]

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { iqd, iqdToUsd, num, round2, usd, usdToIqd } from "@/lib/money"
+import { iqd, iqdToUsd, num, round6, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { NumberInput } from "./number-input"
 import { useRate } from "./rate-provider"
@@ -11,27 +11,40 @@ type Props = Omit<React.ComponentProps<typeof NumberInput>, "value" | "onChange"
   value: string | number
   /** Always gets the amount in USD (as text), whichever currency was typed */
   onChange?: (e: { target: { value: string } }) => void
-  /** The rate to convert with (IQD per 100 USD); today's rate when left out */
+  /** The rate to convert with (IQD per 100 USD); today's rate when left out. Pass the record's own rate when
+   * changing a saved amount, so an IQD amount comes back exactly as typed. */
   rate?: number | null
+  /** The currency it was typed in (the switch starts there); saved with the record so it shows the same way */
+  currency?: Currency
+  onCurrencyChange?: (currency: Currency) => void
 }
+
+export type Currency = "usd" | "iqd"
 
 /**
  * A money field with a USD / IQD switch. Amounts are kept in USD, so the rest of the app doesn't change:
- * typing in IQD converts at the rate, and the other currency shows small underneath.
+ * typing in IQD converts at the rate, and the other currency shows small underneath. The chosen currency
+ * goes back to the form (onCurrencyChange), which saves it so the amount shows in that currency later.
  */
-export function MoneyInput({ value, onChange, rate, className, ...props }: Props) {
+export function MoneyInput({ value, onChange, rate, currency = "usd", onCurrencyChange, className, ...props }: Props) {
   const today = useRate()
   const r = rate || today || 0
-  const [cur, setCur] = useState<"usd" | "iqd">("usd")
+  const [cur, setCur] = useState<Currency>(currency)
   const toIqdText = (u: string) => (u === "" || !r ? "" : String(Math.round(usdToIqd(num(u), r))))
-  const toUsdText = (q: string) => (q === "" || !r ? "" : String(round2(iqdToUsd(num(q), r))))
+  // Kept to 6 decimals, so the IQD amount comes back exactly
+  const toUsdText = (q: string) => (q === "" || !r ? "" : String(round6(iqdToUsd(num(q), r))))
+  const usdText = (u: string) => (u === "" ? "" : String(Math.round(num(u) * 100) / 100))
   const incoming = String(value ?? "")
-  const [text, setText] = useState(incoming)
-  // The last USD amount this field knows about; a different one from outside (a form reset) is shown afresh
+  const [text, setText] = useState(currency === "iqd" ? toIqdText(incoming) : usdText(incoming))
+  // The last USD amount and currency this field knows about; different ones from outside (a form opened on
+  // another record) are shown afresh
   const [seen, setSeen] = useState(incoming)
-  if (incoming !== seen) {
+  const [seenCurrency, setSeenCurrency] = useState(currency)
+  if (incoming !== seen || currency !== seenCurrency) {
     setSeen(incoming)
-    setText(cur === "usd" ? incoming : toIqdText(incoming))
+    setSeenCurrency(currency)
+    setCur(currency)
+    setText(currency === "iqd" ? toIqdText(incoming) : usdText(incoming))
   }
 
   const type = (typed: string) => {
@@ -40,10 +53,12 @@ export function MoneyInput({ value, onChange, rate, className, ...props }: Props
     setSeen(asUsd)
     onChange?.({ target: { value: asUsd } })
   }
-  const pick = (next: "usd" | "iqd") => {
+  const pick = (next: Currency) => {
     if (next === cur) return
-    setText(next === "iqd" ? toIqdText(seen) : seen)
+    setText(next === "iqd" ? toIqdText(seen) : usdText(seen))
     setCur(next)
+    setSeenCurrency(next)
+    onCurrencyChange?.(next)
   }
   const amount = num(seen)
 

@@ -25,7 +25,7 @@ const en = {
   },
   home: {
     title: "Home",
-    group: { finance: "Finance", contacts: "Contacts", assets: "Assets & stock", hr: "HR" },
+    group: { finance: "Finance", contacts: "Contacts", assets: "Holdings", hr: "HR" },
     desc: {
       invoices: "Bill customers in USD and IQD",
       receipts: "Money in from customers, out to suppliers",
@@ -63,6 +63,14 @@ const en = {
     ready: "{count} page(s) saved and copied. Paste in the chat (Ctrl+V) and send.",
     saved: "{count} page(s) saved. Attach them in the chat and send.",
     failed: "Couldn't make the pictures. Try again.",
+  },
+  wallet: {
+    title: "Wallet",
+    balance: "Balance",
+    in: "In",
+    out: "Out",
+    empty: "No money in or out yet.",
+    kind: { capital: "Capital", receipt_in: "Receipt (customer)", receipt_out: "Receipt (supplier)", invoice: "Customer invoice", purchase: "Purchase invoice", expense: "Expense", debt_in: "Debt paid to us", debt_out: "Debt we paid" },
   },
   printPage: {
     title: "Print / PDF",
@@ -331,7 +339,7 @@ const en = {
     addDeduction: "Add deduction",
     bonus: "Bonus",
     deduction: "Deduction",
-    reason: "Reason",
+    reason: "Note (what it was for)",
     reasonBonus: "e.g. Overtime, Eid bonus",
     reasonDeduction: "e.g. Advance, late days",
     addAdjustment: "Add bonus or deduction",

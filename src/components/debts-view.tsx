@@ -12,19 +12,21 @@ import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { deleteDebt, payDebt, saveDebt } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
-import type { Debt, DebtDirection, InvoiceRow } from "@/lib/data/types"
+import type { AmountCurrency, Debt, DebtDirection, InvoiceRow } from "@/lib/data/types"
 import { isEnabled } from "@/lib/features"
 import { cn } from "@/lib/utils"
-import { docNumber, num, round2 } from "@/lib/money"
+import { docNumber, num, round2, round6 } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
 import { MoneyInput } from "./money-input"
+import { useRate } from "./rate-provider"
 import { FormDialog, useEditor } from "./form-dialog"
 import { LinkTabs } from "./link-tabs"
 import { PageHeader } from "./page-header"
 import { useAction } from "./use-action"
 
-const blank = () => ({ party: "", amount_usd: "", date: today(), due_date: "", notes: "" })
+// currency / rate: what the amount was typed in, and the rate then (payments follow the same)
+const blank = () => ({ party: "", amount_usd: "", date: today(), due_date: "", notes: "", currency: "usd" as AmountCurrency, rate_per_100: null as number | null })
 
 export function DebtsView({
   direction,
@@ -42,6 +44,7 @@ export function DebtsView({
   const { pending, run } = useAction()
   const editor = useEditor(blank)
   const { form, set } = editor
+  const todayRate = useRate()
   const [paying, setPaying] = useState<Debt | null>(null)
   const [payment, setPayment] = useState("")
 
@@ -125,7 +128,7 @@ export function DebtsView({
               </TableRow>
             )}
             {debts.map((debt) => {
-              const left = round2(debt.amount_usd - debt.paid_usd)
+              const left = round6(debt.amount_usd - debt.paid_usd)
               return (
                 <TableRow key={debt.id}>
                   <TableCell>
@@ -140,10 +143,10 @@ export function DebtsView({
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{formatDate(debt.date, locale)}</TableCell>
                   <TableCell className="hidden md:table-cell">{formatDate(debt.due_date, locale)}</TableCell>
-                  <TableCell className="text-end tabular-nums"><Amount usd={debt.amount_usd} /></TableCell>
-                  <TableCell className="hidden text-end tabular-nums sm:table-cell"><Amount usd={debt.paid_usd} /></TableCell>
+                  <TableCell className="text-end tabular-nums"><Amount usd={debt.amount_usd} currency={debt.currency} rate={debt.rate_per_100} /></TableCell>
+                  <TableCell className="hidden text-end tabular-nums sm:table-cell"><Amount usd={debt.paid_usd} currency={debt.currency} rate={debt.rate_per_100} /></TableCell>
                   <TableCell className="text-end tabular-nums">
-                    {left <= 0 ? <Badge variant="secondary">{t("debts.settled")}</Badge> : <span className="font-medium"><Amount usd={left} /></span>}
+                    {left <= 0 ? <Badge variant="secondary">{t("debts.settled")}</Badge> : <span className="font-medium"><Amount usd={left} currency={debt.currency} rate={debt.rate_per_100} /></span>}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
@@ -173,6 +176,8 @@ export function DebtsView({
                               date: debt.date,
                               due_date: debt.due_date ?? "",
                               notes: debt.notes ?? "",
+                              currency: debt.currency,
+                              rate_per_100: debt.rate_per_100,
                             })
                           }
                         >
@@ -195,7 +200,7 @@ export function DebtsView({
         onOpenChange={editor.setOpen}
         pending={pending}
         onSubmit={() =>
-          run(() => saveDebt(editor.id, { ...form, direction, amount_usd: num(form.amount_usd), due_date: form.due_date || null, notes: form.notes || null }), {
+          run(() => saveDebt(editor.id, { ...form, direction, amount_usd: num(form.amount_usd), rate_per_100: form.rate_per_100 || todayRate, due_date: form.due_date || null, notes: form.notes || null }), {
             success: t("common.saved"),
             then: () => editor.setOpen(false),
           })
@@ -206,7 +211,7 @@ export function DebtsView({
           <Input value={form.party} onChange={(e) => set("party", e.target.value)} required autoFocus />
         </Field>
         <Field label={t("common.amount")}>
-          <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} required />
+          <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} required />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("common.date")}>
@@ -229,7 +234,7 @@ export function DebtsView({
         onSubmit={() => paying && run(() => payDebt(paying.id, num(payment)), { success: t("common.saved"), then: () => setPaying(null) })}
       >
         <Field label={t("debts.paymentAmount")}>
-          <MoneyInput value={payment} onChange={(e) => setPayment(e.target.value)} required autoFocus />
+          <MoneyInput value={payment} onChange={(e) => setPayment(e.target.value)} currency={paying?.currency} rate={paying?.rate_per_100} required autoFocus />
         </Field>
       </FormDialog>
     </div>

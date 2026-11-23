@@ -10,24 +10,27 @@ import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { deleteInventoryItem, saveInventoryItem } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
-import { INVENTORY_KINDS, type InventoryItem, type InventoryKind } from "@/lib/data/types"
+import { INVENTORY_KINDS, type AmountCurrency, type InventoryItem, type InventoryKind } from "@/lib/data/types"
 import { num, plain } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
 import { MoneyInput } from "./money-input"
+import { useRate } from "./rate-provider"
 import { NumberInput } from "./number-input"
 import { FormDialog, useEditor } from "./form-dialog"
 import { LinkTabs } from "./link-tabs"
 import { PageHeader } from "./page-header"
 import { useAction } from "./use-action"
 
-const blank = () => ({ kind: "stock" as InventoryKind, name: "", qty: "1", value_usd: "", date: today(), notes: "" })
+// currency / rate: what the value was typed in, and the rate then
+const blank = () => ({ kind: "stock" as InventoryKind, name: "", qty: "1", value_usd: "", date: today(), notes: "", currency: "usd" as AmountCurrency, rate_per_100: null as number | null })
 
 export function InventoryView({ kind, items, totals }: { kind: InventoryKind; items: InventoryItem[]; totals: Record<InventoryKind, number> }) {
   const { t, locale } = useI18n()
   const { pending, run } = useAction()
   const editor = useEditor(blank)
   const { form, set } = editor
+  const todayRate = useRate()
   const total = items.reduce((s, i) => s + i.value_usd, 0)
 
   return (
@@ -73,7 +76,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell className="text-end tabular-nums">{plain(item.qty, 3)}</TableCell>
-                <TableCell className="text-end tabular-nums"><Amount usd={item.value_usd} /></TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={item.value_usd} currency={item.currency} rate={item.rate_per_100} /></TableCell>
                 <TableCell className="hidden sm:table-cell">{formatDate(item.date, locale)}</TableCell>
                 <TableCell className="hidden max-w-64 truncate text-muted-foreground md:table-cell">
                   {item.source_purchase_id ? (
@@ -91,7 +94,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
                       size="icon-sm"
                       aria-label={t("common.edit")}
                       onClick={() =>
-                        editor.openEdit(item.id, { kind: item.kind, name: item.name, qty: String(item.qty), value_usd: String(item.value_usd), date: item.date, notes: item.notes ?? "" })
+                        editor.openEdit(item.id, { kind: item.kind, name: item.name, qty: String(item.qty), value_usd: String(item.value_usd), date: item.date, notes: item.notes ?? "", currency: item.currency, rate_per_100: item.rate_per_100 })
                       }
                     >
                       <Pencil />
@@ -120,7 +123,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
         onOpenChange={editor.setOpen}
         pending={pending}
         onSubmit={() =>
-          run(() => saveInventoryItem(editor.id, { ...form, qty: num(form.qty), value_usd: num(form.value_usd), notes: form.notes || null }), {
+          run(() => saveInventoryItem(editor.id, { ...form, qty: num(form.qty), value_usd: num(form.value_usd), rate_per_100: form.rate_per_100 || todayRate, notes: form.notes || null }), {
             success: t("common.saved"),
             then: () => editor.setOpen(false),
           })
@@ -135,7 +138,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
             <NumberInput  step="any" min="0" value={form.qty} onChange={(e) => set("qty", e.target.value)} />
           </Field>
           <Field label={t("inventory.value")}>
-            <MoneyInput value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} required />
+            <MoneyInput value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} required />
           </Field>
         </div>
         <Field label={t("common.date")}>

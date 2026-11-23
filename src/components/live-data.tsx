@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useTransition } from "react"
 import { appPages } from "@/lib/actions/preload"
 import { featureOf, isEnabled } from "@/lib/features"
 
-const SECTIONS = ["/", "/invoices", "/receipts", "/purchases", "/expenses", "/debts", "/reports", "/customers", "/suppliers", "/inventory", "/hr", "/hr/payroll", "/history"]
+const SECTIONS = ["/", "/wallet", "/invoices", "/receipts", "/purchases", "/expenses", "/debts", "/reports", "/customers", "/suppliers", "/inventory", "/hr", "/hr/payroll", "/history"]
 /** A page shown from the browser's copy is checked against the server once that copy is this old
  * (saves made in the app reload the copies straight away, so this only catches changes from elsewhere). */
 const FRESH_MS = 30_000

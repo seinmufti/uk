@@ -12,22 +12,25 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { useI18n } from "@/i18n/provider"
 import { deleteExpense, saveExpense } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
-import { EXPENSE_CATEGORIES, type Expense, type ExpenseCategory } from "@/lib/data/types"
+import { EXPENSE_CATEGORIES, type AmountCurrency, type Expense, type ExpenseCategory } from "@/lib/data/types"
 import { num } from "@/lib/money"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { MoneyInput } from "./money-input"
+import { useRate } from "./rate-provider"
 import { FormDialog, useEditor } from "./form-dialog"
 import { PageHeader } from "./page-header"
 import { useAction } from "./use-action"
 
-const blank = () => ({ date: today(), category: "other" as ExpenseCategory, description: "", amount_usd: "", recurring: false })
+// currency / rate: what the amount was typed in, and the rate then
+const blank = () => ({ date: today(), category: "other" as ExpenseCategory, description: "", amount_usd: "", recurring: false, currency: "usd" as AmountCurrency, rate_per_100: null as number | null })
 
 export function ExpensesView({ expenses, from, to, category }: { expenses: Expense[]; from: string; to: string; category: string }) {
   const { t, locale } = useI18n()
   const router = useRouter()
   const { pending, run } = useAction()
   const editor = useEditor(blank)
+  const todayRate = useRate()
   const { form, set } = editor
   const total = expenses.reduce((s, e) => s + e.amount_usd, 0)
 
@@ -101,7 +104,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
                   )}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{t.dynamic(`expenses.categories.${e.category}`, e.category)}</TableCell>
-                <TableCell className="text-end tabular-nums"><Amount usd={e.amount_usd} /></TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={e.amount_usd} currency={e.currency} rate={e.rate_per_100} /></TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     {/* Running costs: add this month's copy in one click */}
@@ -110,7 +113,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
                       size="icon-sm"
                       title={t("common.add")}
                       aria-label={t("common.add")}
-                      onClick={() => editor.openNew({ category: e.category, description: e.description, amount_usd: String(e.amount_usd), recurring: e.recurring })}
+                      onClick={() => editor.openNew({ category: e.category, description: e.description, amount_usd: String(e.amount_usd), recurring: e.recurring, currency: e.currency, rate_per_100: e.rate_per_100 })}
                     >
                       <Copy />
                     </Button>
@@ -120,7 +123,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
                         size="icon-sm"
                         aria-label={t("common.edit")}
                         onClick={() =>
-                          editor.openEdit(e.id, { date: e.date, category: e.category, description: e.description, amount_usd: String(e.amount_usd), recurring: e.recurring })
+                          editor.openEdit(e.id, { date: e.date, category: e.category, description: e.description, amount_usd: String(e.amount_usd), recurring: e.recurring, currency: e.currency, rate_per_100: e.rate_per_100 })
                         }
                       >
                         <Pencil />
@@ -151,7 +154,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
         onOpenChange={editor.setOpen}
         pending={pending}
         onSubmit={() =>
-          run(() => saveExpense(editor.id, { ...form, amount_usd: num(form.amount_usd) }), {
+          run(() => saveExpense(editor.id, { ...form, amount_usd: num(form.amount_usd), rate_per_100: form.rate_per_100 || todayRate }), {
             success: t("common.saved"),
             then: () => editor.setOpen(false),
           })
@@ -171,7 +174,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
             </NativeSelect>
           </Field>
           <Field label={t("common.amount")}>
-            <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} required />
+            <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} required />
           </Field>
         </div>
         <Field label={t("common.date")}>

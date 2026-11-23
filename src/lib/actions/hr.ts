@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db, must } from "@/lib/db"
 import { formatMonth, parseISODate, periodRange, today } from "@/lib/dates"
-import { num, round2 } from "@/lib/money"
+import { num, round6 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
 const message = (e: unknown) => (e instanceof z.ZodError ? e.issues[0].message : e)
@@ -31,7 +31,10 @@ const EmployeeSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   position: z.string().trim().nullable().optional(),
   phone: z.string().trim().nullable().optional(),
-  base_salary_usd: z.coerce.number().min(0),
+  base_salary_usd: z.coerce.number().min(0).transform(round6),
+  // The currency the salary is set in and the rate then (an IQD salary stays exactly the same in IQD)
+  salary_currency: z.enum(["usd", "iqd"]).default("usd"),
+  salary_rate: z.coerce.number().positive().nullable().optional(),
   start_date: z.string().min(1),
   active: z.boolean(),
   notes: z.string().trim().nullable().optional(),
@@ -109,7 +112,7 @@ async function generatePayrollAction(month: string) {
     const { from, to } = periodRange("monthly", month)
     const [employees, existing, leaves, absences] = await Promise.all([
       // Only people who had started by the end of the month
-      db().from("employees").select("id, base_salary_usd, start_date").eq("active", true).lte("start_date", to),
+      db().from("employees").select("id, base_salary_usd, salary_currency, salary_rate, start_date").eq("active", true).lte("start_date", to),
       db().from("payroll").select("employee_id").eq("month", from),
       db().from("leaves").select("employee_id, from_date, to_date").eq("type", "unpaid").lte("from_date", to).gte("to_date", from),
       db().from("absences").select("employee_id, date, days").gte("date", from).lte("date", to),
@@ -121,7 +124,7 @@ async function generatePayrollAction(month: string) {
       .map((e) => {
         // Someone who started this month is paid for the days from their start date
         const worked = overlapDays(e.start_date ?? from, to, from, to)
-        const base = round2((num(e.base_salary_usd) * worked) / monthDays)
+        const base = round6((num(e.base_salary_usd) * worked) / monthDays)
         const myLeaves = must(leaves).filter((l) => l.employee_id === e.id)
         const leaveDays = myLeaves.reduce((s, l) => s + overlapDays(l.from_date, l.to_date, from, to), 0)
         // An absence on a day of unpaid leave is already taken off
@@ -129,10 +132,10 @@ async function generatePayrollAction(month: string) {
           .filter((a) => a.employee_id === e.id && !myLeaves.some((l) => a.date >= l.from_date && a.date <= l.to_date))
           .reduce((s, a) => s + num(a.days), 0)
         // Never more than the salary itself
-        return { month: from, employee_id: e.id, base_usd: base, deductions_usd: Math.min(base, round2((num(e.base_salary_usd) / 30) * (leaveDays + missing))), days: leaveDays + missing }
+        return { month: from, employee_id: e.id, currency: e.salary_currency, rate_per_100: e.salary_rate, base_usd: base, deductions_usd: Math.min(base, round6((num(e.base_salary_usd) / 30) * (leaveDays + missing))), days: leaveDays + missing }
       })
     if (!rows.length) return
-    const saved = must(await db().from("payroll").insert(rows.map((r) => ({ month: r.month, employee_id: r.employee_id, base_usd: r.base_usd, deductions_usd: r.deductions_usd }))).select("id, employee_id"))
+    const saved = must(await db().from("payroll").insert(rows.map((r) => ({ month: r.month, employee_id: r.employee_id, currency: r.currency, rate_per_100: r.rate_per_100, base_usd: r.base_usd, deductions_usd: r.deductions_usd }))).select("id, employee_id"))
     // The leave / absence deduction is the first entry on the row (it can be changed or removed like any other)
     const auto = rows
       .filter((r) => r.deductions_usd > 0)
@@ -150,13 +153,13 @@ async function syncPayroll(payrollId: string) {
     db().from("payroll").select("base_usd").eq("id", payrollId).single(),
     db().from("payroll_items").select("kind, amount_usd").eq("payroll_id", payrollId),
   ])
-  const sum = (kind: string) => round2(must(items).filter((i) => i.kind === kind).reduce((s, i) => s + num(i.amount_usd), 0))
+  const sum = (kind: string) => round6(must(items).filter((i) => i.kind === kind).reduce((s, i) => s + num(i.amount_usd), 0))
   const deductions = sum("deduction")
   const bonuses = sum("bonus")
   const base = num(must(row).base_usd)
   if (deductions > base + bonuses) throw new Error("Deductions can't be more than the salary")
   must(await db().from("payroll").update({ deductions_usd: deductions, bonuses_usd: bonuses }).eq("id", payrollId))
-  must(await db().from("expenses").update({ amount_usd: round2(base - deductions + bonuses) }).eq("payroll_id", payrollId))
+  must(await db().from("expenses").update({ amount_usd: round6(base - deductions + bonuses) }).eq("payroll_id", payrollId))
 }
 
 const PayrollItemSchema = z.object({
@@ -170,7 +173,7 @@ export type PayrollItemInput = z.input<typeof PayrollItemSchema>
 async function savePayrollItemAction(payrollId: string, itemId: string | null, input: PayrollItemInput) {
   return attempt(async () => {
     const v = PayrollItemSchema.parse(input)
-    const values = { ...v, amount_usd: round2(v.amount_usd), reason: v.reason || null }
+    const values = { ...v, amount_usd: round6(v.amount_usd), reason: v.reason || null }
     const before = itemId ? must(await db().from("payroll_items").select("kind, amount_usd, reason").eq("id", itemId).single()) : null
     const id = itemId
       ? (must(await db().from("payroll_items").update(values).eq("id", itemId)), itemId)
@@ -210,7 +213,10 @@ async function setPayrollPaidAction(id: string, paid: boolean) {
             date: paidAt,
             category: "salaries",
             description: `Salary · ${row.employees?.name ?? ""} · ${month}`,
-            amount_usd: round2(num(row.base_usd) - num(row.deductions_usd) + num(row.bonuses_usd)),
+            amount_usd: round6(num(row.base_usd) - num(row.deductions_usd) + num(row.bonuses_usd)),
+            // In the salary's own currency
+            currency: row.currency,
+            rate_per_100: row.rate_per_100,
             payroll_id: id,
           }),
       )

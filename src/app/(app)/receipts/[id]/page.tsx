@@ -56,7 +56,7 @@ export default async function ReceiptPage({ params }: PageProps<"/receipts/[id]"
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{t("receipts.amount")}</span>
             <span className={cn("text-2xl font-semibold tabular-nums", isIn ? "text-emerald-700 dark:text-emerald-400" : "text-orange-700 dark:text-orange-400")}>
-              <Amount usd={r.amount_usd} />
+              <Amount usd={r.amount_usd} currency={r.currency} rate={r.rate_per_100} />
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">

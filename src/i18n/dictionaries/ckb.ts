@@ -26,7 +26,7 @@ const ckb: DeepPartial<Messages> = {
   },
   home: {
     title: "سەرەکی",
-    group: { finance: "دارایی", contacts: "پەیوەندییەکان", assets: "سامان و کاڵا", hr: "کارمەندان" },
+    group: { finance: "دارایی", contacts: "پەیوەندییەکان", assets: "موڵک", hr: "کارمەندان" },
     desc: {
       invoices: "پسوولە بۆ کڕیاران بە USD و IQD",
       receipts: "پارەی وەرگیراو لە کڕیاران، پارەی دراو بە دابینکەران",
@@ -64,6 +64,14 @@ const ckb: DeepPartial<Messages> = {
     ready: "{count} پەڕە پاشەکەوت و کۆپی کرا. لە گفتوگۆکەدا دایبنێ (Ctrl+V) و بینێرە.",
     saved: "{count} پەڕە پاشەکەوت کرا. لە گفتوگۆکەدا هاوپێچی بکە و بینێرە.",
     failed: "نەتوانرا وێنەکان دروست بکرێن. دووبارە هەوڵ بدەوە.",
+  },
+  wallet: {
+    title: "جزدان",
+    balance: "باڵانس",
+    in: "هاتوو",
+    out: "ڕۆیشتوو",
+    empty: "هێشتا هیچ پارەیەک نەهاتووە و نەڕۆیشتووە.",
+    kind: { capital: "سەرمایە", receipt_in: "پسوولەی پارە (کڕیار)", receipt_out: "پسوولەی پارە (دابینکەر)", invoice: "پسوولەی کڕیار", purchase: "پسوولەی کڕین", expense: "خەرجی", debt_in: "قەرزی دراوە بە ئێمە", debt_out: "قەرزی داومانەتەوە" },
   },
   printPage: {
     title: "چاپ / PDF",
@@ -332,7 +340,7 @@ const ckb: DeepPartial<Messages> = {
     addDeduction: "زیادکردنی بڕین",
     bonus: "پاداشت",
     deduction: "بڕین",
-    reason: "هۆکار",
+    reason: "تێبینی (بۆ چی بوو)",
     reasonBonus: "بۆ نموونە: کاتی زیادە، پاداشتی جەژن",
     reasonDeduction: "بۆ نموونە: پێشەکی، ڕۆژانی دواکەوتن",
     addAdjustment: "زیادکردنی پاداشت یان بڕین",

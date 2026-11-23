@@ -34,7 +34,7 @@ export default async function ReceiptsLayout({ children }: LayoutProps<"/receipt
               title: receiptNumber(r.kind, r.number),
               subtitle: r.party,
               date: r.date,
-              amount: <Amount usd={r.kind === "in" ? r.amount_usd : -r.amount_usd} rate={r.rate_per_100} />,
+              amount: <Amount usd={r.kind === "in" ? r.amount_usd : -r.amount_usd} currency={r.currency} rate={r.rate_per_100} />,
               text: usd(r.amount_usd),
               badge: r.kind === "in" ? { label: t("receipts.kind.in"), tone: "good" } : { label: t("receipts.kind.out"), tone: "warn" },
             }))}

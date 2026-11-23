@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { saveReceipt } from "@/lib/actions/receipts"
 import { today } from "@/lib/dates"
-import type { OpenItem, Party, Receipt, ReceiptKind } from "@/lib/data/types"
+import type { AmountCurrency, OpenItem, Party, Receipt, ReceiptKind } from "@/lib/data/types"
 import { iqd, num, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { AREA, Field, NativeSelect } from "./form-bits"
@@ -58,6 +58,8 @@ export function ReceiptForm({
   const [date, setDate] = useState(receipt?.date ?? today())
   const [rate, setRate] = useState(String(receipt?.rate_per_100 ?? liveRate ?? ""))
   const [notes, setNotes] = useState(receipt?.notes ?? "")
+  // The currency the amount is typed in (saved with the receipt, so it shows the same way)
+  const [currency, setCurrency] = useState<AmountCurrency>(receipt?.currency ?? "usd")
   const [newParty, setNewParty] = useState(false)
 
   const party = parties[kind].find((p) => p.id === partyId)
@@ -94,6 +96,7 @@ export function ReceiptForm({
           rate_per_100: num(rate),
           // Everything is paid in cash
           method: "cash",
+          currency,
           invoice_id: chosen?.type === "invoice" ? chosen.id : null,
           debt_id: chosen?.type === "debt" ? chosen.id : null,
           notes: notes || null,
@@ -167,7 +170,7 @@ export function ReceiptForm({
 
       <div className={cn("grid gap-4", AREA.payment)}>
         <Field label={t("receipts.amount")}>
-          <MoneyInput value={amount} onChange={(e) => setAmount(e.target.value)} rate={num(rate)} required />
+          <MoneyInput value={amount} onChange={(e) => setAmount(e.target.value)} rate={num(rate)} currency={currency} onCurrencyChange={setCurrency} required />
         </Field>
       </div>
 

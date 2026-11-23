@@ -3,7 +3,7 @@ import { db, must } from "@/lib/db"
 import { num } from "@/lib/money"
 import type { Absence, Employee, Leave, PayrollRow } from "./types"
 
-const toEmployee = (r: Record<string, unknown>) => ({ ...r, base_salary_usd: num(r.base_salary_usd) }) as Employee
+const toEmployee = (r: Record<string, unknown>) => ({ ...r, base_salary_usd: num(r.base_salary_usd), salary_rate: r.salary_rate == null ? null : num(r.salary_rate) }) as Employee
 
 export async function listEmployees(): Promise<Employee[]> {
   return must(await db().from("employees").select("*").order("active", { ascending: false }).order("name")).map(toEmployee)
@@ -32,6 +32,7 @@ export async function listPayroll(month: string): Promise<PayrollRow[]> {
       base_usd: num(r.base_usd),
       deductions_usd: num(r.deductions_usd),
       bonuses_usd: num(r.bonuses_usd),
+      rate_per_100: r.rate_per_100 == null ? null : num(r.rate_per_100),
       items: [...payroll_items].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((i) => ({ id: i.id, kind: i.kind, amount_usd: num(i.amount_usd), reason: i.reason })),
     }))
     .sort((a, b) => a.employee_name.localeCompare(b.employee_name))
