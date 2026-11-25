@@ -28,10 +28,11 @@ import {
   deletePayrollItem,
   savePayrollItem,
 } from "@/lib/actions/hr"
-import { formatDate, periodRange, today } from "@/lib/dates"
+import { formatDate, formatMonth, periodRange, today } from "@/lib/dates"
 import type { Absence, AmountCurrency, Employee, Leave, PayrollItem, PayrollRow } from "@/lib/data/types"
-import { iqd, iqdToUsd, num, plain, round6, usd, usdToIqd } from "@/lib/money"
+import { iqd, num, plain, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { DateInput } from "./date-input"
 import { Amount } from "./amount"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
@@ -68,13 +69,13 @@ export function HrTabs() {
 // ---- Employee form ----
 
 // salary_currency / salary_rate: what the salary was typed in, and the rate then (an IQD salary stays exact)
-const blankEmployee = () => ({ name: "", position: "", phone: "", base_salary_usd: "", salary_currency: "usd" as AmountCurrency, salary_rate: null as number | null, start_date: today(), active: true, notes: "" })
+const blankEmployee = () => ({ name: "", position: "", phone: "", base_salary_usd: "", salary_currency: "iqd" as AmountCurrency, salary_rate: null as number | null, start_date: today(), active: true, notes: "" })
 const employeeForm = (e: Employee) => ({
   name: e.name,
   position: e.position ?? "",
   phone: e.phone ?? "",
   base_salary_usd: String(e.base_salary_usd),
-  salary_currency: e.salary_currency ?? "usd",
+  salary_currency: "iqd" as AmountCurrency,
   salary_rate: e.salary_rate,
   start_date: e.start_date,
   active: e.active,
@@ -110,10 +111,10 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
           <PhoneInput value={form.phone} onChange={(phone) => set("phone", phone)} />
         </Field>
         <Field label={t("hr.salary")}>
-          <MoneyInput value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} currency={form.salary_currency} onCurrencyChange={(c) => set("salary_currency", c)} rate={form.salary_rate} required />
+          <MoneyInput value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} only="iqd" rate={form.salary_rate} required />
         </Field>
         <Field label={t("hr.startDate")}>
-          <Input type="date" value={form.start_date} onChange={(e) => set("start_date", e.target.value)} required />
+          <DateInput value={form.start_date} onChange={(e) => set("start_date", e.target.value)} required />
         </Field>
       </div>
       <Label className="flex items-center gap-2 font-normal">
@@ -134,11 +135,11 @@ export function EmployeesView({ employees, highlight }: { employees: Employee[];
   const router = useRouter()
   const editor = useEditor(blankEmployee)
   const todayRate = useRate()
-  // Each currency added up on its own: USD salaries in USD, IQD salaries in IQD
+  // HR is IQD only
   const active = employees.filter((e) => e.active)
   const payroll = {
-    usd: round6(active.filter((e) => e.salary_currency !== "iqd").reduce((s, e) => s + e.base_salary_usd, 0)),
-    iqd: active.filter((e) => e.salary_currency === "iqd").reduce((s, e) => s + Math.round(usdToIqd(e.base_salary_usd, e.salary_rate || todayRate || 0)), 0),
+    usd: 0,
+    iqd: active.reduce((s, e) => s + Math.round(usdToIqd(e.base_salary_usd, e.salary_rate || todayRate || 0)), 0),
   }
   return (
     <div className="grid gap-4">
@@ -187,7 +188,7 @@ export function EmployeesView({ employees, highlight }: { employees: Employee[];
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">{e.position || "—"}</TableCell>
                 <TableCell className="hidden md:table-cell">{formatDate(e.start_date, locale)}</TableCell>
-                <TableCell className="text-end tabular-nums"><Amount usd={e.base_salary_usd} currency={e.salary_currency} rate={e.salary_rate} /></TableCell>
+                <TableCell className="text-end tabular-nums"><Amount usd={e.base_salary_usd} currency="iqd" rate={e.salary_rate} /></TableCell>
                 <TableCell onClick={(ev) => ev.stopPropagation()}>
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon-sm" aria-label={t("common.edit")} onClick={() => editor.openEdit(e.id, employeeForm(e))}>
@@ -243,7 +244,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
             {[employee.position, employee.phone].filter(Boolean).join(" · ") || "—"}
           </div>
           <div className="mt-2 text-sm">
-            {t("hr.salary")}: <span className="font-medium tabular-nums"><Amount usd={employee.base_salary_usd} currency={employee.salary_currency} rate={employee.salary_rate} /></span> · {t("hr.startDate")}: {formatDate(employee.start_date, locale)}
+            {t("hr.salary")}: <span className="font-medium tabular-nums"><Amount usd={employee.base_salary_usd} currency="iqd" rate={employee.salary_rate} /></span> · {t("hr.startDate")}: {formatDate(employee.start_date, locale)}
           </div>
           {employee.notes && <p className="mt-2 text-sm text-muted-foreground">{employee.notes}</p>}
         </div>
@@ -337,10 +338,10 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
       >
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("common.from")}>
-            <Input type="date" value={leave.form.from_date} onChange={(e) => leave.set("from_date", e.target.value)} required />
+            <DateInput value={leave.form.from_date} onChange={(e) => leave.set("from_date", e.target.value)} required />
           </Field>
           <Field label={t("common.to")}>
-            <Input type="date" value={leave.form.to_date} onChange={(e) => leave.set("to_date", e.target.value)} required />
+            <DateInput value={leave.form.to_date} onChange={(e) => leave.set("to_date", e.target.value)} required />
           </Field>
         </div>
         <Field label={t("common.type")}>
@@ -371,7 +372,7 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
       >
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("common.date")}>
-            <Input type="date" value={absence.form.date} onChange={(e) => absence.set("date", e.target.value)} required />
+            <DateInput value={absence.form.date} onChange={(e) => absence.set("date", e.target.value)} required />
           </Field>
           <Field label={t("hr.days")}>
             <NumberInput  step="0.5" min="0.5" value={absence.form.days} onChange={(e) => absence.set("days", e.target.value)} required />
@@ -388,17 +389,16 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
 // ---- Payroll ----
 
 type ItemForm = { kind: PayrollItem["kind"]; amount: string; reason: string; currency: AmountCurrency; rate_per_100: number | null }
-const blankItem = (): ItemForm => ({ kind: "bonus", amount: "", reason: "", currency: "usd", rate_per_100: null })
+const blankItem = (): ItemForm => ({ kind: "bonus", amount: "", reason: "", currency: "iqd", rate_per_100: null })
 
 /** The entries added up per currency they were typed in: "$88.12 + 2,000 IQD" */
 function ItemsTotal({ items }: { items: PayrollItem[] }) {
   const today = useRate()
-  const inUsd = items.filter((i) => i.currency !== "iqd").reduce((s, i) => s + i.amount_usd, 0)
-  const inIqd = items.filter((i) => i.currency === "iqd").reduce((s, i) => s + Math.round(usdToIqd(i.amount_usd, i.rate_per_100 || today || 0)), 0)
-  const parts = [inUsd > 0.005 && usd(inUsd), inIqd > 0 && iqd(inIqd)].filter(Boolean)
+  // HR is IQD only
+  const total = items.reduce((s, i) => s + Math.round(usdToIqd(i.amount_usd, i.rate_per_100 || today || 0)), 0)
   return (
     <bdi dir="ltr" className="tabular-nums">
-      {parts.join(" + ")}
+      {iqd(total)}
     </bdi>
   )
 }
@@ -412,7 +412,7 @@ function Notes({ items, onEdit }: { items: PayrollItem[]; onEdit: (item: Payroll
         <li key={i.id}>
           <button type="button" onClick={() => onEdit(i)} title={i.reason ?? undefined} className="-mx-1 flex max-w-56 items-baseline gap-1.5 rounded px-1 hover:bg-muted hover:text-foreground">
             {i.reason && <span className="truncate">{i.reason}</span>}
-            <Amount usd={i.amount_usd} currency={i.currency} rate={i.rate_per_100} className="shrink-0" />
+            <Amount usd={i.amount_usd} currency="iqd" rate={i.rate_per_100} className="shrink-0" />
           </button>
         </li>
       ))}
@@ -420,22 +420,16 @@ function Notes({ items, onEdit }: { items: PayrollItem[]; onEdit: (item: Payroll
   )
 }
 
-const MONTHS = {
-  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-  ar: ["كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"],
-  ckb: ["کانوونی دووەم", "شوبات", "ئازار", "نیسان", "ئایار", "حوزەیران", "تەممووز", "ئاب", "ئەیلوول", "تشرینی یەکەم", "تشرینی دووەم", "کانوونی یەکەم"],
-}
-
-/** ‹ November 2026 ›: steps a month back or forward */
+/** ‹ 11/2026 ›: steps a month back or forward */
 function MonthSwitch({ month, onChange }: { month: string; onChange: (month: string) => void }) {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const [y, m] = month.split("-").map(Number)
   const step = (by: number) => {
     const d = new Date(Date.UTC(y, m - 1 + by, 1))
     onChange(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`)
   }
-  // Fixed names, not Intl: the server and the browser format months differently, which breaks hydration
-  const label = `${(MONTHS[locale as keyof typeof MONTHS] ?? MONTHS.en)[m - 1]} ${y}`
+  // Numbers only (MM/YYYY), like every date in the app
+  const label = formatMonth(month)
   return (
     <div className="inline-flex items-center rounded-lg border bg-card" aria-label={t("hr.month")}>
       <Button variant="ghost" size="icon-sm" onClick={() => step(-1)} aria-label="‹">
@@ -449,34 +443,17 @@ function MonthSwitch({ month, onChange }: { month: string; onChange: (month: str
   )
 }
 
-/** A row's net pay kept in the currencies it's made of: the salary in its own currency, each bonus /
- * deduction in the one it was typed in. Nothing is converted to be added together. */
+/** A row's net pay in IQD (HR is IQD only): the salary and each bonus / deduction at their own rate */
 function netParts(row: PayrollRow, today: number | null) {
   const inIqd = (usdAmount: number, rate: number | null) => Math.round(usdToIqd(usdAmount, rate || today || 0))
-  let usdPart = 0
-  let iqdPart = 0
-  if (row.currency === "iqd") iqdPart += inIqd(row.base_usd, row.rate_per_100)
-  else usdPart += row.base_usd
-  for (const i of row.items) {
-    const sign = i.kind === "bonus" ? 1 : -1
-    if (i.currency === "iqd") iqdPart += sign * inIqd(i.amount_usd, i.rate_per_100)
-    else usdPart += sign * i.amount_usd
-  }
-  return { usd: round6(usdPart), iqd: iqdPart }
+  let iqdPart = inIqd(row.base_usd, row.rate_per_100)
+  for (const i of row.items) iqdPart += (i.kind === "bonus" ? 1 : -1) * inIqd(i.amount_usd, i.rate_per_100 || row.rate_per_100)
+  return { usd: 0, iqd: iqdPart }
 }
 
-/** What to hand over for a net pay: its USD and IQD parts, a negative part taken off the other one */
+/** What to hand over for a net pay: all of it in IQD, never below zero */
 function expectedPay(parts: { usd: number; iqd: number }, rate: number) {
-  let { usd: u, iqd: q } = parts
-  if (q < 0) {
-    u = round6(u + iqdToUsd(q, rate))
-    q = 0
-  }
-  if (u < 0) {
-    q = Math.round(q + usdToIqd(u, rate))
-    u = 0
-  }
-  return { usd: Math.max(0, round6(u)), iqd: Math.max(0, q) }
+  return { usd: 0, iqd: Math.max(0, Math.round(parts.iqd + usdToIqd(parts.usd, rate))) }
 }
 
 /** "$610.00 − 10,000 IQD", "$700.00", "400,000 IQD" */
@@ -533,7 +510,7 @@ function PayrollLine({ row, onAdd, onEdit }: { row: PayrollRow; onAdd: (kind: Pa
         </Link>
       </TableCell>
       <TableCell className="text-end">
-        <Amount usd={row.base_usd} currency={row.currency} rate={row.rate_per_100} />
+        <Amount usd={row.base_usd} currency="iqd" rate={row.rate_per_100} />
       </TableCell>
       <TableCell className="text-end text-red-700 dark:text-red-400">
         {row.deductions_usd > 0 ? <ItemsTotal items={row.items.filter((i) => i.kind === "deduction")} /> : "—"}
@@ -544,8 +521,7 @@ function PayrollLine({ row, onAdd, onEdit }: { row: PayrollRow; onAdd: (kind: Pa
         <Notes items={row.items.filter((i) => i.kind === "bonus")} onEdit={onEdit} />
       </TableCell>
       <TableCell>
-        <Input
-          type="date"
+        <DateInput
           aria-label={t("common.from")}
           value={from}
           disabled={pending}
@@ -556,8 +532,7 @@ function PayrollLine({ row, onAdd, onEdit }: { row: PayrollRow; onAdd: (kind: Pa
         {row.hired && from < row.hired && <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">{t("hr.beforeHired", { date: formatDate(row.hired, locale) })}</div>}
       </TableCell>
       <TableCell>
-        <Input
-          type="date"
+        <DateInput
           aria-label={t("common.to")}
           value={to}
           disabled={pending}
@@ -686,14 +661,9 @@ function PayrollSummary({ rows }: { rows: PayrollRow[] }) {
             {t("hr.net")}: <RowNet row={paying} />
           </p>
         )}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="USD">
-            <NumberInput value={pay.usd} onChange={(e) => setPay({ ...pay, usd: e.target.value })} placeholder="0.00" className="text-end tabular-nums" autoFocus />
-          </Field>
-          <Field label="IQD">
-            <NumberInput value={pay.iqd} onChange={(e) => setPay({ ...pay, iqd: e.target.value })} placeholder="0" className="text-end tabular-nums" />
-          </Field>
-        </div>
+        <Field label={`${t("common.amount")} (IQD)`}>
+          <NumberInput value={pay.iqd} onChange={(e) => setPay({ ...pay, iqd: e.target.value })} placeholder="0" className="text-end tabular-nums" autoFocus />
+        </Field>
         <Field label={t("hr.reason")}>
           <Input value={pay.note} onChange={(e) => setPay({ ...pay, note: e.target.value })} />
         </Field>
@@ -801,7 +771,7 @@ export function PayrollView({ month, rows, missing }: { month: string; rows: Pay
           ))}
         </div>
         <Field label={t("common.amount")}>
-          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} currency={form.currency} onCurrencyChange={(c) => setForm({ ...form, currency: c })} rate={form.rate_per_100} required autoFocus />
+          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} only="iqd" rate={form.rate_per_100} required autoFocus />
         </Field>
         <Field label={t("hr.reason")}>
           <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t(form.kind === "bonus" ? "hr.reasonBonus" : "hr.reasonDeduction")} />

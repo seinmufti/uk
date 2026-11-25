@@ -33,7 +33,8 @@ const EmployeeSchema = z.object({
   phone: z.string().trim().nullable().optional(),
   base_salary_usd: z.coerce.number().min(0).transform(round6),
   // The currency the salary is set in and the rate then (an IQD salary stays exactly the same in IQD)
-  salary_currency: z.enum(["usd", "iqd"]).default("usd"),
+  // HR is IQD only
+  salary_currency: z.enum(["usd", "iqd"]).optional().transform(() => "iqd" as const),
   salary_rate: z.coerce.number().positive().nullable().optional(),
   start_date: z.string().min(1),
   active: z.boolean(),
@@ -218,7 +219,8 @@ const PayrollItemSchema = z.object({
   kind: z.enum(["bonus", "deduction"]),
   amount_usd: z.coerce.number().positive("Amount is required"),
   reason: z.string().trim().nullable().optional(),
-  currency: z.enum(["usd", "iqd"]).default("usd"),
+  // HR is IQD only
+  currency: z.enum(["usd", "iqd"]).optional().transform(() => "iqd" as const),
   rate_per_100: z.coerce.number().positive().nullable().optional(),
 })
 export type PayrollItemInput = z.input<typeof PayrollItemSchema>

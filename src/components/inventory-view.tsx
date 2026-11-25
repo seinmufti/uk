@@ -12,6 +12,7 @@ import { deleteInventoryItem, saveInventoryItem } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
 import { INVENTORY_KINDS, type AmountCurrency, type InventoryItem, type InventoryKind } from "@/lib/data/types"
 import { num, plain } from "@/lib/money"
+import { DateInput } from "./date-input"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
 import { MoneyInput } from "./money-input"
@@ -142,7 +143,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
           </Field>
         </div>
         <Field label={t("common.date")}>
-          <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} required />
+          <DateInput value={form.date} onChange={(e) => set("date", e.target.value)} required />
         </Field>
         <Field label={t("common.notes")}>
           <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} />

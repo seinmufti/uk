@@ -15,6 +15,7 @@ import { randomDemoInvoice } from "@/lib/demo-invoices"
 import type { CurrencyMode, DocKind, Invoice, Party } from "@/lib/data/types"
 import { docNumber, iqd, iqdToUsd, num, round2, round6, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { DateInput } from "./date-input"
 import { AREA, Field } from "./form-bits"
 import { NumberInput } from "./number-input"
 import { PartyPicker } from "./party-picker"
@@ -179,7 +180,7 @@ export function InvoiceForm({
           </div>
         </Field>
         <Field label={t("common.date")}>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <DateInput value={date} onChange={(e) => setDate(e.target.value)} required />
         </Field>
       </div>
 
@@ -326,7 +327,7 @@ export function InvoiceForm({
           // When the rest has to be paid by
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="text-muted-foreground">{t("invoices.dueDate")}</span>
-            <Input type="date" value={dueDate} min={date} onChange={(e) => setDueDate(e.target.value)} className="w-44" />
+            <DateInput value={dueDate} min={date} onChange={(e) => setDueDate(e.target.value)} className="w-44" />
           </div>
         )}
       </div>

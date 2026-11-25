@@ -17,6 +17,8 @@ type Props = Omit<React.ComponentProps<typeof NumberInput>, "value" | "onChange"
   /** The currency it was typed in (the switch starts there); saved with the record so it shows the same way */
   currency?: Currency
   onCurrencyChange?: (currency: Currency) => void
+  /** Only this currency: no switch and no other currency shown (HR is IQD only) */
+  only?: Currency
 }
 
 export type Currency = "usd" | "iqd"
@@ -26,7 +28,8 @@ export type Currency = "usd" | "iqd"
  * typing in IQD converts at the rate, and the other currency shows small underneath. The chosen currency
  * goes back to the form (onCurrencyChange), which saves it so the amount shows in that currency later.
  */
-export function MoneyInput({ value, onChange, rate, currency = "usd", onCurrencyChange, className, ...props }: Props) {
+export function MoneyInput({ value, onChange, rate, currency: given = "usd", onCurrencyChange, only, className, ...props }: Props) {
+  const currency = only ?? given
   const today = useRate()
   const r = rate || today || 0
   const [cur, setCur] = useState<Currency>(currency)
@@ -65,7 +68,8 @@ export function MoneyInput({ value, onChange, rate, currency = "usd", onCurrency
     <div className="grid gap-1">
       <div className="flex items-center gap-2">
         <NumberInput {...props} value={text} onChange={(e) => type(e.target.value)} placeholder={cur === "usd" ? "0.00" : "0"} className={cn("min-w-0 flex-1 text-end tabular-nums", className)} />
-        <div role="radiogroup" aria-label="Currency" className="inline-flex shrink-0 rounded-lg border bg-card p-[2px] text-xs">
+        {only && <span className="shrink-0 text-xs font-medium text-muted-foreground">{only === "usd" ? "USD" : "IQD"}</span>}
+        {!only && <div role="radiogroup" aria-label="Currency" className="inline-flex shrink-0 rounded-lg border bg-card p-[2px] text-xs">
           {(["usd", "iqd"] as const).map((c) => (
             <button
               key={c}
@@ -79,10 +83,10 @@ export function MoneyInput({ value, onChange, rate, currency = "usd", onCurrency
               {c === "usd" ? "USD" : "IQD"}
             </button>
           ))}
-        </div>
+        </div>}
       </div>
       {/* The same amount in the other currency */}
-      {amount > 0 && r > 0 && <span className="text-end text-xs text-muted-foreground tabular-nums">{cur === "usd" ? iqd(usdToIqd(amount, r)) : usd(amount)}</span>}
+      {!only && amount > 0 && r > 0 && <span className="text-end text-xs text-muted-foreground tabular-nums">{cur === "usd" ? iqd(usdToIqd(amount, r)) : usd(amount)}</span>}
     </div>
   )
 }

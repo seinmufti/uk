@@ -14,6 +14,7 @@ import { deleteExpense, saveExpense } from "@/lib/actions/records"
 import { formatDate, today } from "@/lib/dates"
 import { EXPENSE_CATEGORIES, type AmountCurrency, type Expense, type ExpenseCategory } from "@/lib/data/types"
 import { num } from "@/lib/money"
+import { DateInput } from "./date-input"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
 import { MoneyInput } from "./money-input"
@@ -52,10 +53,10 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
       />
       <div className="flex flex-wrap items-end gap-3">
         <Field label={t("common.from")}>
-          <Input type="date" value={from} onChange={(e) => e.target.value && filter({ from: e.target.value })} className="w-40" />
+          <DateInput value={from} onChange={(e) => e.target.value && filter({ from: e.target.value })} className="w-40" />
         </Field>
         <Field label={t("common.to")}>
-          <Input type="date" value={to} onChange={(e) => e.target.value && filter({ to: e.target.value })} className="w-40" />
+          <DateInput value={to} onChange={(e) => e.target.value && filter({ to: e.target.value })} className="w-40" />
         </Field>
         <Field label={t("common.category")}>
           <NativeSelect value={category} onChange={(e) => filter({ category: e.target.value })} className="w-44">
@@ -178,7 +179,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
           </Field>
         </div>
         <Field label={t("common.date")}>
-          <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} required />
+          <DateInput value={form.date} onChange={(e) => set("date", e.target.value)} required />
         </Field>
         <Label className="flex items-center gap-2 font-normal">
           <Checkbox checked={form.recurring} onCheckedChange={(v) => set("recurring", !!v)} />

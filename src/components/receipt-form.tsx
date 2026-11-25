@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/i18n/provider"
 import { saveReceipt } from "@/lib/actions/receipts"
@@ -13,6 +12,7 @@ import { today } from "@/lib/dates"
 import type { AmountCurrency, OpenItem, Party, Receipt, ReceiptKind } from "@/lib/data/types"
 import { iqd, num, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
+import { DateInput } from "./date-input"
 import { AREA, Field, NativeSelect } from "./form-bits"
 import { MoneyInput } from "./money-input"
 import { NumberInput } from "./number-input"
@@ -152,7 +152,7 @@ export function ReceiptForm({
           </div>
         </Field>
         <Field label={t("common.date")}>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <DateInput value={date} onChange={(e) => setDate(e.target.value)} required />
         </Field>
       </div>
 

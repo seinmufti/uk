@@ -16,6 +16,7 @@ import type { AmountCurrency, Debt, DebtDirection, InvoiceRow } from "@/lib/data
 import { isEnabled } from "@/lib/features"
 import { cn } from "@/lib/utils"
 import { docNumber, num, round2, round6 } from "@/lib/money"
+import { DateInput } from "./date-input"
 import { DeleteButton } from "./delete-button"
 import { Field } from "./form-bits"
 import { MoneyInput } from "./money-input"
@@ -215,10 +216,10 @@ export function DebtsView({
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("common.date")}>
-            <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} required />
+            <DateInput value={form.date} onChange={(e) => set("date", e.target.value)} required />
           </Field>
           <Field label={t("debts.dueDate")}>
-            <Input type="date" value={form.due_date} onChange={(e) => set("due_date", e.target.value)} />
+            <DateInput value={form.due_date} onChange={(e) => set("due_date", e.target.value)} />
           </Field>
         </div>
         <Field label={t("common.notes")}>
