@@ -420,6 +420,12 @@ function Notes({ items, onEdit }: { items: PayrollItem[]; onEdit: (item: Payroll
   )
 }
 
+const MONTHS = {
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+  ar: ["كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"],
+  ckb: ["کانوونی دووەم", "شوبات", "ئازار", "نیسان", "ئایار", "حوزەیران", "تەممووز", "ئاب", "ئەیلوول", "تشرینی یەکەم", "تشرینی دووەم", "کانوونی یەکەم"],
+}
+
 /** ‹ November 2026 ›: steps a month back or forward */
 function MonthSwitch({ month, onChange }: { month: string; onChange: (month: string) => void }) {
   const { t, locale } = useI18n()
@@ -428,7 +434,8 @@ function MonthSwitch({ month, onChange }: { month: string; onChange: (month: str
     const d = new Date(Date.UTC(y, m - 1 + by, 1))
     onChange(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`)
   }
-  const label = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)))
+  // Fixed names, not Intl: the server and the browser format months differently, which breaks hydration
+  const label = `${(MONTHS[locale as keyof typeof MONTHS] ?? MONTHS.en)[m - 1]} ${y}`
   return (
     <div className="inline-flex items-center rounded-lg border bg-card" aria-label={t("hr.month")}>
       <Button variant="ghost" size="icon-sm" onClick={() => step(-1)} aria-label="‹">
