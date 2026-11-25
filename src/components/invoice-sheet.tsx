@@ -3,7 +3,7 @@ import logo from "@/assets/logo.webp"
 import { dirFor, type Locale } from "@/i18n/locales"
 import { translator } from "@/i18n/translate"
 import { COMPANY } from "@/lib/company"
-import type { DocKind, Invoice } from "@/lib/data/types"
+import type { DocKind, Invoice, Receipt } from "@/lib/data/types"
 import { formatDate } from "@/lib/dates"
 import { docNumber, iqd, plain, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
@@ -41,32 +41,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
       className={cn("paper flex min-h-[1123px] flex-col bg-white p-[12mm] text-[13px] text-neutral-900 print:min-h-[272mm] print:px-[12mm] print:py-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")}
       style={{ colorScheme: "light" }}
     >
-      {/* Header: Kurdish name · logo · English name */}
-      {/* data-keep: blocks a picture export never cuts through (it starts a new page before them instead) */}
-      <header data-keep className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="rtl">
-        <div className="text-center font-[family-name:var(--font-arabic)]">
-          <div className="text-2xl leading-tight font-extrabold text-amber-600">{COMPANY.nameKu}</div>
-          <div className="mt-1 text-sm font-semibold text-neutral-700">{COMPANY.taglineKu}</div>
-        </div>
-        <Image src={logo} alt="UK Group" width={120} height={120} loading="eager" className="size-[120px] rounded-full" />
-        <div className="text-center" dir="ltr">
-          <div className="text-2xl leading-tight font-extrabold tracking-tight text-amber-600">{COMPANY.nameEn}</div>
-          <div className="mt-1 text-sm font-semibold text-neutral-700">{COMPANY.taglineEn}</div>
-        </div>
-      </header>
-
-      {/* Contact strip */}
-      <div data-keep className="mt-4 flex overflow-hidden rounded-md text-sm font-semibold" dir="rtl">
-        <div className="flex flex-1 items-center gap-2 bg-amber-500 px-4 py-2 font-[family-name:var(--font-arabic)] text-neutral-950">
-          <svg viewBox="0 0 24 24" className="size-4 shrink-0 fill-current" aria-hidden="true">
-            <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
-          </svg>
-          {COMPANY.address}
-        </div>
-        <div className="flex flex-1 items-center justify-center gap-2 bg-neutral-900 px-4 py-2 text-amber-400" dir="ltr">
-          {COMPANY.phones.map(intlPhone).join("  -  ")}
-        </div>
-      </div>
+      <SheetHead />
 
       {/* Who it is for (one box) and the invoice itself (the other), the same size side by side */}
       <section data-keep className="mt-5 grid grid-cols-2 gap-4">
@@ -168,6 +143,41 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
   )
 }
 
+/** The top of every printed sheet: the business's name in Kurdish and English around the logo, then the
+ * address and phone strip. */
+function SheetHead() {
+  return (
+    <>
+        {/* Header: Kurdish name · logo · English name */}
+        {/* data-keep: blocks a picture export never cuts through (it starts a new page before them instead) */}
+        <header data-keep className="grid grid-cols-[1fr_auto_1fr] items-center gap-4" dir="rtl">
+          <div className="text-center font-[family-name:var(--font-arabic)]">
+            <div className="text-2xl leading-tight font-extrabold text-amber-600">{COMPANY.nameKu}</div>
+            <div className="mt-1 text-sm font-semibold text-neutral-700">{COMPANY.taglineKu}</div>
+          </div>
+          <Image src={logo} alt="UK Group" width={120} height={120} loading="eager" className="size-[120px] rounded-full" />
+          <div className="text-center" dir="ltr">
+            <div className="text-2xl leading-tight font-extrabold tracking-tight text-amber-600">{COMPANY.nameEn}</div>
+            <div className="mt-1 text-sm font-semibold text-neutral-700">{COMPANY.taglineEn}</div>
+          </div>
+        </header>
+  
+        {/* Contact strip */}
+        <div data-keep className="mt-4 flex overflow-hidden rounded-md text-sm font-semibold" dir="rtl">
+          <div className="flex flex-1 items-center gap-2 bg-amber-500 px-4 py-2 font-[family-name:var(--font-arabic)] text-neutral-950">
+            <svg viewBox="0 0 24 24" className="size-4 shrink-0 fill-current" aria-hidden="true">
+              <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
+            </svg>
+            {COMPANY.address}
+          </div>
+          <div className="flex flex-1 items-center justify-center gap-2 bg-neutral-900 px-4 py-2 text-amber-400" dir="ltr">
+            {COMPANY.phones.map(intlPhone).join("  -  ")}
+          </div>
+        </div>
+    </>
+  )
+}
+
 /** Iraqi numbers written the local way: +964 750 123 4567 → 0750 123 4567 */
 /** An Iraqi number as +964 750 001 4163 (from 0750…, 964…, 00964… or +964…); anything else as typed */
 const intlPhone = (phone: string) => {
@@ -207,6 +217,95 @@ function Sum({ label, value, sub, strong, tone }: { label: string; value: string
           </bdi>
         )}
       </span>
+    </div>
+  )
+}
+
+/** Who a receipt is from / to, as printed: the customer's or supplier's details */
+export type ReceiptParty = { name: string; phone: string | null; address: string | null }
+
+/**
+ * The printed receipt: the same sheet as an invoice (header, contact strip, boxes, table, totals), for a
+ * payment instead of a sale. Its amount shows in the currency it was paid in.
+ */
+export function ReceiptSheet({ receipt, party, lang }: { receipt: Receipt; party: ReceiptParty; lang: Locale }) {
+  const t = translator(lang)
+  const dir = dirFor(lang)
+  const isIn = receipt.kind === "in"
+  const inIqd = receipt.currency === "iqd"
+  const amount = inIqd ? iqd(usdToIqd(receipt.amount_usd, receipt.rate_per_100)) : usd(receipt.amount_usd)
+  const cur = inIqd ? "IQD" : "USD"
+  const number = `${isIn ? "R" : "P"}-${docNumber(receipt.number)}`
+  return (
+    <div
+      lang={lang}
+      dir={dir}
+      className={cn("paper flex min-h-[1123px] flex-col bg-white p-[12mm] text-[13px] text-neutral-900 print:min-h-[272mm] print:px-[12mm] print:py-0", dir === "rtl" && "font-[family-name:var(--font-arabic)]")}
+      style={{ colorScheme: "light" }}
+    >
+      <SheetHead />
+
+      <section data-keep className="mt-5 grid grid-cols-2 gap-4">
+        <Box title={t(isIn ? "receipts.from" : "receipts.to")}>
+          <Row label={t("common.name")}>
+            <span className="font-bold">{party.name}</span>
+          </Row>
+          <Row label={t("common.phone")}>{party.phone ? <span dir="ltr">{intlPhone(party.phone)}</span> : "—"}</Row>
+          <Row label={t("common.address")}>{party.address || "—"}</Row>
+        </Box>
+        <Box title={t(`receipts.docTitle.${receipt.kind}`)}>
+          <Row label={t("receipts.number")}>
+            <span className="font-mono text-base font-bold text-red-600" dir="ltr">
+              {number}
+            </span>
+          </Row>
+          <Row label={t("common.date")}>{formatDate(receipt.date, lang)}</Row>
+          <Row label={t("receipts.for")}>{receipt.for_label ?? t("receipts.onAccount")}</Row>
+        </Box>
+      </section>
+
+      {/* What was paid, as one line */}
+      <table className="mt-5 w-full border-collapse border border-neutral-400 text-[13px]">
+        <thead>
+          <tr data-keep className="bg-amber-500 text-neutral-950">
+            <th className="w-10 border border-amber-600 px-2 py-1.5 text-center font-semibold">#</th>
+            <th className="border border-amber-600 px-2 py-1.5 text-start font-semibold">{t("common.description")}</th>
+            <th className="w-40 border border-amber-600 px-2 py-1.5 text-end font-semibold">
+              {t("receipts.amount")} ({cur})
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-keep>
+            <td className="border border-neutral-300 px-2 py-1.5 text-center text-neutral-500">1</td>
+            <td className="border border-neutral-300 px-2 py-1.5">{receipt.for_label ?? t("receipts.onAccount")}</td>
+            <td className="border border-neutral-300 px-2 py-1.5 text-end font-semibold tabular-nums">
+              <bdi dir="ltr">{amount}</bdi>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <section data-keep className="mt-5 grid break-inside-avoid grid-cols-[1fr_300px] items-start gap-6">
+        <div className="relative min-h-32 rounded-xl border-2 border-neutral-400 p-4 pt-5">
+          <span className="absolute -top-3 end-4 rounded bg-neutral-800 px-2 py-0.5 text-xs font-semibold text-white">{t("common.notes")}</span>
+          <p className="whitespace-pre-wrap">{receipt.notes}</p>
+        </div>
+        <div className="grid gap-1">
+          <Sum strong label={`${t("receipts.amount")} (${cur})`} value={amount} />
+        </div>
+      </section>
+
+      <section data-keep className="mt-auto grid break-inside-avoid grid-cols-2 gap-16 pt-16">
+        <div>
+          <div className="text-sm font-semibold">{t("sheet.accountantSignature")}:</div>
+          <div className="mt-12 border-b border-dashed border-neutral-500" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold">{t("sheet.recipientSignature")}:</div>
+          <div className="mt-12 border-b border-dashed border-neutral-500" />
+        </div>
+      </section>
     </div>
   )
 }

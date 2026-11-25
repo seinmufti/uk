@@ -6,6 +6,7 @@ import { z } from "zod"
 import { DocSchema, settle, type DocInput } from "@/lib/doc-schema"
 import { db, must } from "@/lib/db"
 import { nextInvoiceNumber } from "@/lib/data/invoices"
+import { receiptForInvoicePayment, receiptsTotal } from "@/lib/invoice-receipts"
 import { round6 } from "@/lib/money"
 import { fail, type ActionResult } from "./result"
 
@@ -13,6 +14,8 @@ export type InvoiceInput = DocInput
 
 const refresh = () => {
   revalidatePath("/invoices", "layout")
+  revalidatePath("/receipts", "layout")
+  revalidatePath("/wallet")
   revalidatePath("/reports")
   revalidatePath("/debts")
 }
@@ -24,6 +27,11 @@ async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promis
     // The discount comes off the lines; payment, status and due date go by what is left
     const m = settle(parsed)
     const values = { ...rest, discount_usd: m.discount, amount_paid_usd: m.paid, due_date: m.due_date, status: m.fullyPaid ? "paid" : "unpaid" }
+    // What its receipts already paid can't be taken back here (delete a receipt to lower it)
+    if (id) {
+      const byReceipts = await receiptsTotal(id)
+      if (m.paid < byReceipts - 0.005) throw new Error(`Receipts already paid ${byReceipts.toFixed(2)} USD on this invoice. Delete a receipt to lower the paid amount.`)
+    }
     let row: { id: string; number: number }
     if (id) {
       row = must(await db().from("invoices").update(values).eq("id", id).select("id, number").single())
@@ -42,6 +50,8 @@ async function saveInvoiceAction(id: string | null, input: InvoiceInput): Promis
       }
     }
     must(await db().from("invoice_items").insert(items.map((item, sort) => ({ ...item, sort, invoice_id: row.id }))))
+    // A payment typed on the invoice becomes a receipt
+    await receiptForInvoicePayment(row.id)
     refresh()
     return { ok: true, ...row }
   } catch (e) {
@@ -59,6 +69,8 @@ async function setInvoiceStatusAction(id: string, status: "paid" | "unpaid"): Pr
     const receipts = must(await db().from("receipts").select("amount_usd").eq("invoice_id", id))
     const fromReceipts = Math.min(total, round6(receipts.reduce((s, r) => s + Number(r.amount_usd), 0)))
     must(await db().from("invoices").update({ status, amount_paid_usd: status === "paid" ? total : fromReceipts, ...(status === "paid" ? { due_date: null } : {}) }).eq("id", id))
+    // Paying the rest makes a receipt for it
+    if (status === "paid") await receiptForInvoicePayment(id)
     refresh()
     return { ok: true }
   } catch (e) {
