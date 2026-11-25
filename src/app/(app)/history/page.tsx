@@ -1,9 +1,9 @@
-import { Download } from "lucide-react"
+import { Download, User } from "lucide-react"
 import { HistoryButton } from "@/components/history-button"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { getT } from "@/i18n/server"
-import { describe, listChanges } from "@/lib/data/history"
+import { changedBy, describe, listChanges } from "@/lib/data/history"
 import { cn } from "@/lib/utils"
 
 // DD/MM/YYYY HH:MM, in Iraq's time
@@ -42,7 +42,15 @@ export default async function HistoryPage() {
                   {more > 0 && <span className="text-xs text-muted-foreground">{t("history.more", { count: more })}</span>}
                   {c.undone && <Badge variant="secondary">{t("history.undone")}</Badge>}
                 </div>
-                <div className="text-xs text-muted-foreground">{when(c.at)}</div>
+                <div className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+                  <span>{when(c.at)}</span>
+                  {changedBy(c) && (
+                    <span className="inline-flex items-center gap-1">
+                      <User className="size-3" />
+                      <bdi>{changedBy(c)}</bdi>
+                    </span>
+                  )}
+                </div>
               </div>
               <HistoryButton id={c.id} undone={c.undone} />
             </div>

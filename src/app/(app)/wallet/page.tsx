@@ -32,19 +32,26 @@ export default async function WalletPage() {
       <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
+            {/* In / out twice: a USD group, then an IQD group */}
             <TableRow>
-              <TableHead>{t("common.date")}</TableHead>
-              <TableHead>{t("common.description")}</TableHead>
-              <TableHead className="hidden sm:table-cell">{t("common.type")}</TableHead>
-              <TableHead className="text-end">{t("wallet.in")}</TableHead>
-              <TableHead className="text-end">{t("wallet.out")}</TableHead>
-              <TableHead className="text-end">{t("wallet.balance")}</TableHead>
+              <TableHead rowSpan={2}>{t("common.date")}</TableHead>
+              <TableHead rowSpan={2}>{t("common.description")}</TableHead>
+              <TableHead rowSpan={2} className="hidden sm:table-cell">{t("common.type")}</TableHead>
+              <TableHead colSpan={2} className="h-8 border-s text-center">USD</TableHead>
+              <TableHead colSpan={2} className="h-8 border-s text-center">IQD</TableHead>
+              <TableHead rowSpan={2} className="border-s text-end">{t("wallet.balance")}</TableHead>
+            </TableRow>
+            <TableRow>
+              <TableHead className="h-8 border-s text-end">{t("wallet.in")}</TableHead>
+              <TableHead className="h-8 border-s text-end">{t("wallet.out")}</TableHead>
+              <TableHead className="h-8 border-s text-end">{t("wallet.in")}</TableHead>
+              <TableHead className="h-8 border-s text-end">{t("wallet.out")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                   {t("wallet.empty")}
                 </TableCell>
               </TableRow>
@@ -62,9 +69,11 @@ export default async function WalletPage() {
                   )}
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground sm:table-cell">{t(`wallet.kind.${e.kind}`)}</TableCell>
-                <TableCell className="text-end text-emerald-700 dark:text-emerald-400">{e.amount > 0 ? <Amount usd={e.amount} /> : null}</TableCell>
-                <TableCell className="text-end text-red-700 dark:text-red-400">{e.amount < 0 ? <Amount usd={-e.amount} /> : null}</TableCell>
-                <TableCell className="text-end font-medium">
+                <TableCell className="border-s text-end text-emerald-700 dark:text-emerald-400">{e.amount > 0 ? <Amount usd={e.amount} mode="usd" /> : null}</TableCell>
+                <TableCell className="border-s text-end text-red-700 dark:text-red-400">{e.amount < 0 ? <Amount usd={-e.amount} mode="usd" /> : null}</TableCell>
+                <TableCell className="border-s text-end text-emerald-700 dark:text-emerald-400">{e.amount > 0 ? <Amount usd={e.amount} mode="iqd" rate={e.rate} /> : null}</TableCell>
+                <TableCell className="border-s text-end text-red-700 dark:text-red-400">{e.amount < 0 ? <Amount usd={-e.amount} mode="iqd" rate={e.rate} /> : null}</TableCell>
+                <TableCell className="border-s text-end font-medium">
                   <Amount usd={e.balance} />
                 </TableCell>
               </TableRow>

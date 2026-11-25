@@ -17,17 +17,17 @@ const make = (headers?: Record<string, string>) =>
 let client: SupabaseClient | null = null
 
 /** The change (one action in the app) the current code is running for; see tracked() in actions. */
-export const changeContext = new AsyncLocalStorage<{ id: string; client?: SupabaseClient }>()
+export const changeContext = new AsyncLocalStorage<{ id: string; by?: string | null; client?: SupabaseClient }>()
 
 /**
  * The database with full rights (service-role key). Server only: used by server components and server
  * actions, never sent to the browser. Inside an action, every request carries the action's change id so
- * the history groups them as one change.
+ * the history groups them as one change, and who made it (URL-encoded: a header is plain ASCII).
  */
 export function db(): SupabaseClient {
   if (!DB_READY) throw new Error("Database not configured")
   const change = changeContext.getStore()
-  if (change) return (change.client ??= make({ "x-change-id": change.id }))
+  if (change) return (change.client ??= make({ "x-change-id": change.id, ...(change.by ? { "x-change-by": encodeURIComponent(change.by) } : {}) }))
   client ??= make()
   return client
 }

@@ -346,7 +346,7 @@ const en = {
     editAdjustment: "Change bonus or deduction",
     editAdjustments: "Bonuses and deductions",
     noAdjustments: "No bonuses or deductions this month.",
-    entries: "{count} entries",
+    entries: "Entries: {count}",
     title: "HR",
     employees: "Employees",
     payroll: "Payroll",

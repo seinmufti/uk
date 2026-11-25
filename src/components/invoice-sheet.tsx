@@ -64,7 +64,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
           {COMPANY.address}
         </div>
         <div className="flex flex-1 items-center justify-center gap-2 bg-neutral-900 px-4 py-2 text-amber-400" dir="ltr">
-          {COMPANY.phones.join("  -  ")}
+          {COMPANY.phones.map(intlPhone).join("  -  ")}
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
           <Row label={t("common.name")}>
             <span className="font-bold">{invoice.customer?.name ?? t(sale ? "invoices.noCustomer" : "purchases.noSupplier")}</span>
           </Row>
-          <Row label={t("common.phone")}>{invoice.customer?.phone ? <span dir="ltr">{localPhone(invoice.customer.phone)}</span> : "—"}</Row>
+          <Row label={t("common.phone")}>{invoice.customer?.phone ? <span dir="ltr">{intlPhone(invoice.customer.phone)}</span> : "—"}</Row>
           <Row label={t("common.address")}>{invoice.customer?.address || "—"}</Row>
         </Box>
         <Box title={t(variant === "quotation" ? "sheet.quotation" : sale ? "nav.invoices" : "nav.purchases")}>
@@ -169,7 +169,11 @@ export function InvoiceSheet({ invoice, lang, kind = "sale", variant }: { invoic
 }
 
 /** Iraqi numbers written the local way: +964 750 123 4567 → 0750 123 4567 */
-const localPhone = (phone: string) => phone.replace(/^\s*(?:\+|00)964\s*/, "0")
+/** An Iraqi number as +964 750 001 4163 (from 0750…, 964…, 00964… or +964…); anything else as typed */
+const intlPhone = (phone: string) => {
+  const digits = phone.replace(/\D/g, "").replace(/^(?:00)?964|^0/, "")
+  return /^7\d{9}$/.test(digits) ? `+964 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}` : phone
+}
 
 /** A titled box with label / value lines (the customer box and the invoice box). */
 function Box({ title, children }: { title: string; children: React.ReactNode }) {

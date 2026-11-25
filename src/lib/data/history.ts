@@ -10,7 +10,17 @@ export type HistoryRow = {
   old_row: Record<string, unknown> | null
   new_row: Record<string, unknown> | null
 }
-export type Change = { id: string; at: string; undone: boolean; undone_at: string | null; rows: HistoryRow[] }
+export type Change = { id: string; at: string; undone: boolean; undone_at: string | null; by_user: string | null; rows: HistoryRow[] }
+
+/** The account that made a change (stored URL-encoded), or null for older changes */
+export const changedBy = (c: Change) => {
+  if (!c.by_user) return null
+  try {
+    return decodeURIComponent(c.by_user)
+  } catch {
+    return c.by_user
+  }
+}
 
 /** Parents first: re-created rows need their parents back; deleted rows go children first. */
 export const TABLE_RANK: Record<string, number> = {
