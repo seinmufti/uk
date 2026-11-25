@@ -212,7 +212,7 @@ export function DebtsView({
           <Input value={form.party} onChange={(e) => set("party", e.target.value)} required autoFocus />
         </Field>
         <Field label={t("common.amount")}>
-          <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} required />
+          <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} onRate={(r) => set("rate_per_100", r)} required />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("common.date")}>

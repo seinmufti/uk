@@ -19,6 +19,9 @@ type Props = Omit<React.ComponentProps<typeof NumberInput>, "value" | "onChange"
   onCurrencyChange?: (currency: Currency) => void
   /** Only this currency: no switch and no other currency shown (HR is IQD only) */
   only?: Currency
+  /** Shows the exchange rate under the amount ($100 = … IQD), to change for this entry. An amount typed in
+   * IQD stays as typed and its USD follows the new rate, so USD totals use each entry's own rate. */
+  onRate?: (rate: number) => void
 }
 
 export type Currency = "usd" | "iqd"
@@ -28,7 +31,7 @@ export type Currency = "usd" | "iqd"
  * typing in IQD converts at the rate, and the other currency shows small underneath. The chosen currency
  * goes back to the form (onCurrencyChange), which saves it so the amount shows in that currency later.
  */
-export function MoneyInput({ value, onChange, rate, currency: given = "usd", onCurrencyChange, only, className, ...props }: Props) {
+export function MoneyInput({ value, onChange, rate, currency: given = "usd", onCurrencyChange, only, onRate, className, ...props }: Props) {
   const currency = only ?? given
   const today = useRate()
   const r = rate || today || 0
@@ -64,6 +67,26 @@ export function MoneyInput({ value, onChange, rate, currency: given = "usd", onC
   }
   const amount = num(seen)
 
+  // The rate box: its own text while typing; a different rate from outside (another record) shows afresh
+  const [rateText, setRateText] = useState(r ? String(r) : "")
+  const [seenRate, setSeenRate] = useState(r)
+  if (r !== seenRate) {
+    setSeenRate(r)
+    if (num(rateText) !== r) setRateText(r ? String(r) : "")
+  }
+  const changeRate = (typed: string) => {
+    setRateText(typed)
+    const next = num(typed)
+    if (!(next > 0)) return
+    setSeenRate(next)
+    if (cur === "iqd" && text !== "") {
+      const asUsd = String(round6(iqdToUsd(num(text), next)))
+      setSeen(asUsd)
+      onChange?.({ target: { value: asUsd } })
+    }
+    onRate?.(next)
+  }
+
   return (
     <div className="grid gap-1">
       <div className="flex items-center gap-2">
@@ -87,6 +110,13 @@ export function MoneyInput({ value, onChange, rate, currency: given = "usd", onC
       </div>
       {/* The same amount in the other currency */}
       {!only && amount > 0 && r > 0 && <span className="text-end text-xs text-muted-foreground tabular-nums">{cur === "usd" ? iqd(usdToIqd(amount, r)) : usd(amount)}</span>}
+      {onRate && (
+        <label className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground" dir="ltr">
+          <span>$100 =</span>
+          <NumberInput value={rateText} onChange={(e) => changeRate(e.target.value)} step="any" min="0" aria-label="IQD per $100" className="h-7 w-28 text-end text-xs tabular-nums" />
+          <span>IQD</span>
+        </label>
+      )}
     </div>
   )
 }

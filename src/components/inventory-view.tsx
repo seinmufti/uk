@@ -139,7 +139,7 @@ export function InventoryView({ kind, items, totals }: { kind: InventoryKind; it
             <NumberInput  step="any" min="0" value={form.qty} onChange={(e) => set("qty", e.target.value)} />
           </Field>
           <Field label={t("inventory.value")}>
-            <MoneyInput value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} required />
+            <MoneyInput value={form.value_usd} onChange={(e) => set("value_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} onRate={(r) => set("rate_per_100", r)} required />
           </Field>
         </div>
         <Field label={t("common.date")}>

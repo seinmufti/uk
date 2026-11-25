@@ -111,7 +111,7 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
           <PhoneInput value={form.phone} onChange={(phone) => set("phone", phone)} />
         </Field>
         <Field label={t("hr.salary")}>
-          <MoneyInput value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} only="iqd" rate={form.salary_rate} required />
+          <MoneyInput value={form.base_salary_usd} onChange={(e) => set("base_salary_usd", e.target.value)} only="iqd" rate={form.salary_rate} onRate={(r) => set("salary_rate", r)} required />
         </Field>
         <Field label={t("hr.startDate")}>
           <DateInput value={form.start_date} onChange={(e) => set("start_date", e.target.value)} required />
@@ -564,10 +564,10 @@ function PayrollSummary({ rows }: { rows: PayrollRow[] }) {
   const rateOf = (r: PayrollRow) => (r.currency === "iqd" && r.rate_per_100) || today || 0
   // Paying one: what was handed over, in each currency, and a note
   const [paying, setPaying] = useState<PayrollRow | null>(null)
-  const [pay, setPay] = useState({ usd: "", iqd: "", note: "" })
+  const [pay, setPay] = useState({ usd: "", iqd: "", note: "", rate: "" })
   const openPay = (r: PayrollRow) => {
     const e = expectedPay(netParts(r, today), rateOf(r))
-    setPay({ usd: e.usd ? String(e.usd) : "", iqd: e.iqd ? String(e.iqd) : "", note: "" })
+    setPay({ usd: e.usd ? String(e.usd) : "", iqd: e.iqd ? String(e.iqd) : "", note: "", rate: String(today || rateOf(r) || "") })
     setPaying(r)
   }
   return (
@@ -650,7 +650,7 @@ function PayrollSummary({ rows }: { rows: PayrollRow[] }) {
         pending={pending}
         onSubmit={() =>
           paying &&
-          run(() => payPayroll(paying.id, { usd: num(pay.usd), iqd: num(pay.iqd), rate: rateOf(paying), note: pay.note || null }), {
+          run(() => payPayroll(paying.id, { usd: num(pay.usd), iqd: num(pay.iqd), rate: num(pay.rate) || rateOf(paying), note: pay.note || null }), {
             success: t("common.saved"),
             then: () => setPaying(null),
           })
@@ -663,6 +663,12 @@ function PayrollSummary({ rows }: { rows: PayrollRow[] }) {
         )}
         <Field label={`${t("common.amount")} (IQD)`}>
           <NumberInput value={pay.iqd} onChange={(e) => setPay({ ...pay, iqd: e.target.value })} placeholder="0" className="text-end tabular-nums" autoFocus />
+          {/* The rate on the day it's paid, so the salary's USD in reports is right */}
+          <label className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground" dir="ltr">
+            <span>$100 =</span>
+            <NumberInput value={pay.rate} onChange={(e) => setPay({ ...pay, rate: e.target.value })} step="any" min="0" aria-label="IQD per $100" className="h-7 w-28 text-end text-xs tabular-nums" />
+            <span>IQD</span>
+          </label>
         </Field>
         <Field label={t("hr.reason")}>
           <Input value={pay.note} onChange={(e) => setPay({ ...pay, note: e.target.value })} />
@@ -771,7 +777,7 @@ export function PayrollView({ month, rows, missing }: { month: string; rows: Pay
           ))}
         </div>
         <Field label={t("common.amount")}>
-          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} only="iqd" rate={form.rate_per_100} required autoFocus />
+          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} only="iqd" rate={form.rate_per_100} onRate={(r) => setForm((f) => ({ ...f, rate_per_100: r }))} required autoFocus />
         </Field>
         <Field label={t("hr.reason")}>
           <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t(form.kind === "bonus" ? "hr.reasonBonus" : "hr.reasonDeduction")} />

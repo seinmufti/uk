@@ -175,7 +175,7 @@ export function ExpensesView({ expenses, from, to, category }: { expenses: Expen
             </NativeSelect>
           </Field>
           <Field label={t("common.amount")}>
-            <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} required />
+            <MoneyInput value={form.amount_usd} onChange={(e) => set("amount_usd", e.target.value)} currency={form.currency} onCurrencyChange={(c) => set("currency", c)} rate={form.rate_per_100} onRate={(r) => set("rate_per_100", r)} required />
           </Field>
         </div>
         <Field label={t("common.date")}>

@@ -6,7 +6,7 @@ import type { NextConfig } from "next";
 // Locally (`npm run dev`, see scripts/dev.mjs) the live app is at the root and the demo at /demo: a second
 // dev server with UK_BASE_PATH=/demo, which the root one passes /demo requests on to.
 const BASE_PATH = process.env.VERCEL ? (process.env.UK_BASE_PATH ?? "/uk") : (process.env.UK_BASE_PATH ?? "")
-const LOCAL_DEMO = "http://localhost:3001"
+const LOCAL_DEMO = `http://localhost:${process.env.UK_DEMO_PORT ?? 3001}`
 
 const nextConfig: NextConfig = {
   basePath: BASE_PATH,
