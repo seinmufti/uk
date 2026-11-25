@@ -36,6 +36,7 @@ import { DateInput } from "./date-input"
 import { Amount } from "./amount"
 import { DeleteButton } from "./delete-button"
 import { Field, NativeSelect } from "./form-bits"
+import { RateField } from "./rate-field"
 import { MoneyInput } from "./money-input"
 import { useRate } from "./rate-provider"
 import { NumberInput } from "./number-input"
@@ -664,11 +665,7 @@ function PayrollSummary({ rows }: { rows: PayrollRow[] }) {
         <Field label={`${t("common.amount")} (IQD)`}>
           <NumberInput value={pay.iqd} onChange={(e) => setPay({ ...pay, iqd: e.target.value })} placeholder="0" className="text-end tabular-nums" autoFocus />
           {/* The rate on the day it's paid, so the salary's USD in reports is right */}
-          <label className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground" dir="ltr">
-            <span>$100 =</span>
-            <NumberInput value={pay.rate} onChange={(e) => setPay({ ...pay, rate: e.target.value })} step="any" min="0" aria-label="IQD per $100" className="h-7 w-28 text-end text-xs tabular-nums" />
-            <span>IQD</span>
-          </label>
+          <RateField value={pay.rate} onChange={(rate) => setPay({ ...pay, rate })} />
         </Field>
         <Field label={t("hr.reason")}>
           <Input value={pay.note} onChange={(e) => setPay({ ...pay, note: e.target.value })} />

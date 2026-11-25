@@ -4,6 +4,7 @@ import { useState } from "react"
 import { iqd, iqdToUsd, num, round6, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { NumberInput } from "./number-input"
+import { RateField } from "./rate-field"
 import { useRate } from "./rate-provider"
 
 type Props = Omit<React.ComponentProps<typeof NumberInput>, "value" | "onChange"> & {
@@ -111,11 +112,7 @@ export function MoneyInput({ value, onChange, rate, currency: given = "usd", onC
       {/* The same amount in the other currency */}
       {!only && amount > 0 && r > 0 && <span className="text-end text-xs text-muted-foreground tabular-nums">{cur === "usd" ? iqd(usdToIqd(amount, r)) : usd(amount)}</span>}
       {onRate && (
-        <label className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground" dir="ltr">
-          <span>$100 =</span>
-          <NumberInput value={rateText} onChange={(e) => changeRate(e.target.value)} step="any" min="0" aria-label="IQD per $100" className="h-7 w-28 text-end text-xs tabular-nums" />
-          <span>IQD</span>
-        </label>
+        <RateField value={rateText} onChange={changeRate} />
       )}
     </div>
   )
