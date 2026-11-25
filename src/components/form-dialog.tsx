@@ -12,6 +12,7 @@ export function FormDialog({
   onOpenChange,
   onSubmit,
   pending,
+  extra,
   children,
 }: {
   title: string
@@ -19,6 +20,8 @@ export function FormDialog({
   onOpenChange: (open: boolean) => void
   onSubmit: () => void
   pending: boolean
+  /** Shown at the start of the footer (e.g. Delete when changing a saved entry) */
+  extra?: React.ReactNode
   children: React.ReactNode
 }) {
   const { t } = useI18n()
@@ -39,6 +42,7 @@ export function FormDialog({
         >
           {children}
           <DialogFooter>
+            {extra && <div className="sm:me-auto">{extra}</div>}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t("common.cancel")}
             </Button>

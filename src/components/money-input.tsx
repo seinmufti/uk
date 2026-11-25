@@ -36,8 +36,8 @@ export function MoneyInput({ value, onChange, rate, currency = "usd", onCurrency
   const usdText = (u: string) => (u === "" ? "" : String(Math.round(num(u) * 100) / 100))
   const incoming = String(value ?? "")
   const [text, setText] = useState(currency === "iqd" ? toIqdText(incoming) : usdText(incoming))
-  // The last USD amount and currency this field knows about; different ones from outside (a form opened on
-  // another record) are shown afresh
+  // The last USD amount and the currency prop this field knows about; different ones from outside (a form
+  // opened on another record) are shown afresh. The switch itself works even when the form doesn't track it.
   const [seen, setSeen] = useState(incoming)
   const [seenCurrency, setSeenCurrency] = useState(currency)
   if (incoming !== seen || currency !== seenCurrency) {
@@ -57,7 +57,6 @@ export function MoneyInput({ value, onChange, rate, currency = "usd", onCurrency
     if (next === cur) return
     setText(next === "iqd" ? toIqdText(seen) : usdText(seen))
     setCur(next)
-    setSeenCurrency(next)
     onCurrencyChange?.(next)
   }
   const amount = num(seen)

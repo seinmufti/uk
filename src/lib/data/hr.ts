@@ -24,16 +24,19 @@ export async function getEmployee(id: string): Promise<{ employee: Employee; lea
 }
 
 export async function listPayroll(month: string): Promise<PayrollRow[]> {
-  const rows = must(await db().from("payroll").select("*, employees(name), payroll_items(id, kind, amount_usd, reason, created_at)").eq("month", month)) as (Record<string, unknown> & { employees: { name: string } | null; payroll_items: { id: string; kind: "bonus" | "deduction"; amount_usd: string; reason: string | null; created_at: string }[] })[]
+  const rows = must(await db().from("payroll").select("*, employees(name, start_date), payroll_items(id, kind, amount_usd, reason, currency, rate_per_100, created_at)").eq("month", month)) as (Record<string, unknown> & { employees: { name: string; start_date: string | null } | null; payroll_items: { id: string; kind: "bonus" | "deduction"; amount_usd: string; reason: string | null; currency: "usd" | "iqd" | null; rate_per_100: string | null; created_at: string }[] })[]
   return rows
     .map(({ employees, payroll_items, ...r }) => ({
       ...(r as unknown as PayrollRow),
       employee_name: employees?.name ?? "—",
+      hired: employees?.start_date ?? null,
       base_usd: num(r.base_usd),
       deductions_usd: num(r.deductions_usd),
       bonuses_usd: num(r.bonuses_usd),
+      paid_usd: r.paid_usd == null ? null : num(r.paid_usd),
+      paid_iqd: r.paid_iqd == null ? null : num(r.paid_iqd),
       rate_per_100: r.rate_per_100 == null ? null : num(r.rate_per_100),
-      items: [...payroll_items].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((i) => ({ id: i.id, kind: i.kind, amount_usd: num(i.amount_usd), reason: i.reason })),
+      items: [...payroll_items].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((i) => ({ id: i.id, kind: i.kind, amount_usd: num(i.amount_usd), reason: i.reason, currency: i.currency ?? "usd", rate_per_100: i.rate_per_100 == null ? null : num(i.rate_per_100) })),
     }))
     .sort((a, b) => a.employee_name.localeCompare(b.employee_name))
 }

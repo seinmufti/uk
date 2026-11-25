@@ -1,13 +1,12 @@
 "use client"
 
-import { Check, Minus, Pencil, Plus, Undo2, Wand2 } from "lucide-react"
+import { Check, CheckCheck, ChevronLeft, ChevronRight, Minus, Pencil, Plus, Undo2 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -19,16 +18,19 @@ import {
   deleteAbsence,
   deleteEmployee,
   deleteLeave,
-  deletePayroll,
   generatePayroll,
+  setPayPeriod,
+  setPayrollIncluded,
   saveEmployee,
   setPayrollPaid,
+  payPayroll,
+  payAllPayroll,
   deletePayrollItem,
   savePayrollItem,
 } from "@/lib/actions/hr"
-import { formatDate, today } from "@/lib/dates"
+import { formatDate, periodRange, today } from "@/lib/dates"
 import type { Absence, AmountCurrency, Employee, Leave, PayrollItem, PayrollRow } from "@/lib/data/types"
-import { num, plain, round6 } from "@/lib/money"
+import { iqd, iqdToUsd, num, plain, round6, usd, usdToIqd } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import { Amount } from "./amount"
 import { DeleteButton } from "./delete-button"
@@ -127,11 +129,17 @@ function EmployeeDialog({ editor }: { editor: ReturnType<typeof useEditor<Return
 
 // ---- Employees list ----
 
-export function EmployeesView({ employees }: { employees: Employee[] }) {
+export function EmployeesView({ employees, highlight }: { employees: Employee[]; highlight?: string }) {
   const { t, locale } = useI18n()
   const router = useRouter()
   const editor = useEditor(blankEmployee)
-  const payroll = employees.filter((e) => e.active).reduce((s, e) => s + e.base_salary_usd, 0)
+  const todayRate = useRate()
+  // Each currency added up on its own: USD salaries in USD, IQD salaries in IQD
+  const active = employees.filter((e) => e.active)
+  const payroll = {
+    usd: round6(active.filter((e) => e.salary_currency !== "iqd").reduce((s, e) => s + e.base_salary_usd, 0)),
+    iqd: active.filter((e) => e.salary_currency === "iqd").reduce((s, e) => s + Math.round(usdToIqd(e.base_salary_usd, e.salary_rate || todayRate || 0)), 0),
+  }
   return (
     <div className="grid gap-4">
       <PageHeader
@@ -163,7 +171,12 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
               </TableRow>
             )}
             {employees.map((e) => (
-              <TableRow key={e.id} className={cn("cursor-pointer", !e.active && "opacity-60")} onClick={() => router.push(`/hr/${e.id}`)}>
+              <TableRow
+                key={e.id}
+                ref={e.id === highlight ? (el) => el?.scrollIntoView({ block: "center" }) : undefined}
+                className={cn("cursor-pointer", !e.active && "opacity-60", e.id === highlight && "bg-primary/15 ring-2 ring-primary ring-inset hover:bg-primary/20")}
+                onClick={() => router.push(`/hr/${e.id}`)}
+              >
                 <TableCell className="font-medium">
                   {e.name}
                   {!e.active && (
@@ -196,7 +209,7 @@ export function EmployeesView({ employees }: { employees: Employee[] }) {
                   {t("hr.totalSalaries")}
                 </TableCell>
                 <TableCell className="sm:hidden">{t("hr.totalSalaries")}</TableCell>
-                <TableCell className="text-end tabular-nums"><Amount usd={payroll} /></TableCell>
+                <TableCell className="text-end tabular-nums"><SplitAmount parts={payroll} /></TableCell>
                 <TableCell />
               </TableRow>
             </TableFooter>
@@ -374,92 +387,337 @@ export function EmployeeDetail({ employee, leaves, absences }: { employee: Emplo
 
 // ---- Payroll ----
 
-type ItemForm = { kind: PayrollItem["kind"]; amount: string; reason: string }
-const blankItem = (): ItemForm => ({ kind: "bonus", amount: "", reason: "" })
+type ItemForm = { kind: PayrollItem["kind"]; amount: string; reason: string; currency: AmountCurrency; rate_per_100: number | null }
+const blankItem = (): ItemForm => ({ kind: "bonus", amount: "", reason: "", currency: "usd", rate_per_100: null })
 
-/** What each bonus / deduction was for, small under its total */
-function Notes({ items }: { items: PayrollItem[] }) {
-  const notes = items.map((i) => i.reason).filter(Boolean)
-  if (!notes.length) return null
+/** The entries added up per currency they were typed in: "$88.12 + 2,000 IQD" */
+function ItemsTotal({ items }: { items: PayrollItem[] }) {
+  const today = useRate()
+  const inUsd = items.filter((i) => i.currency !== "iqd").reduce((s, i) => s + i.amount_usd, 0)
+  const inIqd = items.filter((i) => i.currency === "iqd").reduce((s, i) => s + Math.round(usdToIqd(i.amount_usd, i.rate_per_100 || today || 0)), 0)
+  const parts = [inUsd > 0.005 && usd(inUsd), inIqd > 0 && iqd(inIqd)].filter(Boolean)
+  return (
+    <bdi dir="ltr" className="tabular-nums">
+      {parts.join(" + ")}
+    </bdi>
+  )
+}
+
+/** Each bonus / deduction under its total: what it was for and how much; click one to change it */
+function Notes({ items, onEdit }: { items: PayrollItem[]; onEdit: (item: PayrollItem) => void }) {
+  if (!items.length) return null
   return (
     <ul className="mt-0.5 grid justify-items-end text-xs font-normal text-muted-foreground">
-      {notes.map((n, i) => (
-        <li key={i} className="max-w-48 truncate" title={n!}>
-          {n}
+      {items.map((i) => (
+        <li key={i.id}>
+          <button type="button" onClick={() => onEdit(i)} title={i.reason ?? undefined} className="-mx-1 flex max-w-56 items-baseline gap-1.5 rounded px-1 hover:bg-muted hover:text-foreground">
+            {i.reason && <span className="truncate">{i.reason}</span>}
+            <Amount usd={i.amount_usd} currency={i.currency} rate={i.rate_per_100} className="shrink-0" />
+          </button>
         </li>
       ))}
     </ul>
   )
 }
 
-/** One employee's month: read-only totals; bonuses and deductions are added through a small form. */
-function PayrollLine({ row, onAdd, onOpen }: { row: PayrollRow; onAdd: (kind: PayrollItem["kind"]) => void; onOpen: () => void }) {
+/** ‹ November 2026 ›: steps a month back or forward */
+function MonthSwitch({ month, onChange }: { month: string; onChange: (month: string) => void }) {
+  const { t, locale } = useI18n()
+  const [y, m] = month.split("-").map(Number)
+  const step = (by: number) => {
+    const d = new Date(Date.UTC(y, m - 1 + by, 1))
+    onChange(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`)
+  }
+  const label = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, 1)))
+  return (
+    <div className="inline-flex items-center rounded-lg border bg-card" aria-label={t("hr.month")}>
+      <Button variant="ghost" size="icon-sm" onClick={() => step(-1)} aria-label="‹">
+        <ChevronLeft className="rtl:rotate-180" />
+      </Button>
+      <span className="min-w-36 px-2 text-center text-sm font-medium tabular-nums">{label}</span>
+      <Button variant="ghost" size="icon-sm" onClick={() => step(1)} aria-label="›">
+        <ChevronRight className="rtl:rotate-180" />
+      </Button>
+    </div>
+  )
+}
+
+/** A row's net pay kept in the currencies it's made of: the salary in its own currency, each bonus /
+ * deduction in the one it was typed in. Nothing is converted to be added together. */
+function netParts(row: PayrollRow, today: number | null) {
+  const inIqd = (usdAmount: number, rate: number | null) => Math.round(usdToIqd(usdAmount, rate || today || 0))
+  let usdPart = 0
+  let iqdPart = 0
+  if (row.currency === "iqd") iqdPart += inIqd(row.base_usd, row.rate_per_100)
+  else usdPart += row.base_usd
+  for (const i of row.items) {
+    const sign = i.kind === "bonus" ? 1 : -1
+    if (i.currency === "iqd") iqdPart += sign * inIqd(i.amount_usd, i.rate_per_100)
+    else usdPart += sign * i.amount_usd
+  }
+  return { usd: round6(usdPart), iqd: iqdPart }
+}
+
+/** What to hand over for a net pay: its USD and IQD parts, a negative part taken off the other one */
+function expectedPay(parts: { usd: number; iqd: number }, rate: number) {
+  let { usd: u, iqd: q } = parts
+  if (q < 0) {
+    u = round6(u + iqdToUsd(q, rate))
+    q = 0
+  }
+  if (u < 0) {
+    q = Math.round(q + usdToIqd(u, rate))
+    u = 0
+  }
+  return { usd: Math.max(0, round6(u)), iqd: Math.max(0, q) }
+}
+
+/** "$610.00 − 10,000 IQD", "$700.00", "400,000 IQD" */
+function SplitAmount({ parts }: { parts: { usd: number; iqd: number } }) {
+  const hasUsd = Math.abs(parts.usd) > 0.005
+  const hasIqd = parts.iqd !== 0
+  const text =
+    hasUsd && hasIqd
+      ? `${usd(parts.usd)} ${parts.iqd < 0 ? "−" : "+"} ${iqd(Math.abs(parts.iqd))}`
+      : hasIqd
+        ? iqd(parts.iqd)
+        : usd(parts.usd)
+  return (
+    <bdi dir="ltr" className="tabular-nums">
+      {text}
+    </bdi>
+  )
+}
+
+/** Net pay of several rows, each currency added up on its own */
+function NetTotal({ rows }: { rows: PayrollRow[] }) {
+  const today = useRate()
+  const parts = rows.map((r) => netParts(r, today)).reduce((t, p) => ({ usd: t.usd + p.usd, iqd: t.iqd + p.iqd }), { usd: 0, iqd: 0 })
+  return <SplitAmount parts={parts} />
+}
+
+/** One row's net pay, per currency */
+function RowNet({ row }: { row: PayrollRow }) {
+  const today = useRate()
+  return <SplitAmount parts={netParts(row, today)} />
+}
+
+/** One employee's month: tick them in, add bonuses / deductions, pick the pay date. */
+function PayrollLine({ row, onAdd, onEdit }: { row: PayrollRow; onAdd: (kind: PayrollItem["kind"]) => void; onEdit: (item: PayrollItem) => void }) {
   const { t, locale } = useI18n()
   const { pending, run } = useAction()
-  // To 6 decimals: an IQD salary shows to the dinar
-  const net = round6(row.base_usd - row.deductions_usd + row.bonuses_usd)
+  const { from: monthStart, to: monthEnd } = periodRange("monthly", row.month)
+  const from = row.period_from ?? monthStart
+  const to = row.period_to ?? monthEnd
   return (
-    <TableRow>
+    <TableRow className={cn(!row.included && "text-muted-foreground")}>
+      <TableCell className="w-8">
+        <Checkbox
+          checked={row.included}
+          disabled={pending || !!row.paid_at}
+          aria-label={t("hr.include")}
+          title={t("hr.include")}
+          onCheckedChange={(v) => run(() => setPayrollIncluded(row.id, !!v))}
+        />
+      </TableCell>
       <TableCell className="font-medium">
-        <button type="button" onClick={onOpen} className="text-start hover:underline">
+        <Link href={`/hr?highlight=${row.employee_id}`} className="hover:underline">
           {row.employee_name}
-        </button>
-        {row.items.length > 0 && <div className="text-xs font-normal text-muted-foreground">{t("hr.entries", { count: row.items.length })}</div>}
+        </Link>
       </TableCell>
       <TableCell className="text-end">
         <Amount usd={row.base_usd} currency={row.currency} rate={row.rate_per_100} />
       </TableCell>
       <TableCell className="text-end text-red-700 dark:text-red-400">
-        {row.deductions_usd > 0 ? <Amount usd={row.deductions_usd} currency={row.currency} rate={row.rate_per_100} /> : "—"}
-        <Notes items={row.items.filter((i) => i.kind === "deduction")} />
+        {row.deductions_usd > 0 ? <ItemsTotal items={row.items.filter((i) => i.kind === "deduction")} /> : "—"}
+        <Notes items={row.items.filter((i) => i.kind === "deduction")} onEdit={onEdit} />
       </TableCell>
       <TableCell className="text-end text-emerald-700 dark:text-emerald-400">
-        {row.bonuses_usd > 0 ? <Amount usd={row.bonuses_usd} currency={row.currency} rate={row.rate_per_100} /> : "—"}
-        <Notes items={row.items.filter((i) => i.kind === "bonus")} />
+        {row.bonuses_usd > 0 ? <ItemsTotal items={row.items.filter((i) => i.kind === "bonus")} /> : "—"}
+        <Notes items={row.items.filter((i) => i.kind === "bonus")} onEdit={onEdit} />
       </TableCell>
-      <TableCell className="text-end font-semibold">
-        <Amount usd={net} currency={row.currency} rate={row.rate_per_100} />
+      <TableCell>
+        <Input
+          type="date"
+          aria-label={t("common.from")}
+          value={from}
+          disabled={pending}
+          onChange={(e) => e.target.value && run(() => setPayPeriod(row.id, e.target.value, to))}
+          className="w-36"
+        />
+        {/* Only a warning: it can still be saved */}
+        {row.hired && from < row.hired && <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">{t("hr.beforeHired", { date: formatDate(row.hired, locale) })}</div>}
+      </TableCell>
+      <TableCell>
+        <Input
+          type="date"
+          aria-label={t("common.to")}
+          value={to}
+          disabled={pending}
+          onChange={(e) => e.target.value && run(() => setPayPeriod(row.id, from, e.target.value))}
+          className="w-36"
+        />
       </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-1">
-          {/* + adds a bonus, − a deduction; the name opens the list to change them */}
+          {/* + adds a bonus, − a deduction; click one under the total to change it */}
           <Button size="icon-sm" variant="ghost" className="text-emerald-600 dark:text-emerald-400" onClick={() => onAdd("bonus")} title={t("hr.addBonus")} aria-label={t("hr.addBonus")}>
             <Plus />
           </Button>
           <Button size="icon-sm" variant="ghost" className="text-red-600 dark:text-red-400" onClick={() => onAdd("deduction")} title={t("hr.addDeduction")} aria-label={t("hr.addDeduction")}>
             <Minus />
           </Button>
-          {row.paid_at ? (
-            <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, false))} title={t("hr.unpaid")}>
-              <Undo2 /> <span className="text-emerald-700 dark:text-emerald-400">{t("hr.paidOn", { date: formatDate(row.paid_at, locale) })}</span>
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, true))}>
-              <Check /> {t("hr.markPaid")}
-            </Button>
-          )}
-          {!row.paid_at && <DeleteButton action={() => deletePayroll(row.id)} />}
         </div>
       </TableCell>
     </TableRow>
   )
 }
 
-export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[] }) {
+/** This month's payroll: who's in, when they're paid, how much; pay from here. */
+function PayrollSummary({ rows }: { rows: PayrollRow[] }) {
+  const { t, locale } = useI18n()
+  const { pending, run } = useAction()
+  const unpaid = rows.filter((r) => !r.paid_at)
+  const today = useRate()
+  const rateOf = (r: PayrollRow) => (r.currency === "iqd" && r.rate_per_100) || today || 0
+  // Paying one: what was handed over, in each currency, and a note
+  const [paying, setPaying] = useState<PayrollRow | null>(null)
+  const [pay, setPay] = useState({ usd: "", iqd: "", note: "" })
+  const openPay = (r: PayrollRow) => {
+    const e = expectedPay(netParts(r, today), rateOf(r))
+    setPay({ usd: e.usd ? String(e.usd) : "", iqd: e.iqd ? String(e.iqd) : "", note: "" })
+    setPaying(r)
+  }
+  return (
+    <section className="grid gap-3 border-t pt-4">
+      <h2 className="font-semibold">{t("hr.summary")}</h2>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("hr.period")}</TableHead>
+              <TableHead className="text-end">{t("hr.net")}</TableHead>
+              <TableHead className="w-48 text-end">
+                {unpaid.length > 0 && (
+                  <Button size="sm" disabled={pending} onClick={() => run(() => payAllPayroll(unpaid.map((r) => ({ id: r.id, ...expectedPay(netParts(r, today), rateOf(r)), rate: rateOf(r) }))), { success: t("hr.allPaid") })}>
+                    <CheckCheck /> {t("hr.markAllPaid")}
+                  </Button>
+                )}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                  {t("hr.summaryEmpty")}
+                </TableCell>
+              </TableRow>
+            )}
+            {rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-medium">
+                  <Link href={`/hr?highlight=${row.employee_id}`} className="hover:underline">
+                    {row.employee_name}
+                  </Link>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">{row.period_from && row.period_to ? `${formatDate(row.period_from, locale)} → ${formatDate(row.period_to, locale)}` : "—"}</TableCell>
+                <TableCell className="text-end font-semibold">
+                  <RowNet row={row} />
+                  {row.paid_at && (row.paid_usd != null || row.paid_iqd != null) && (
+                    <div className="text-xs font-normal text-emerald-700 dark:text-emerald-400">
+                      {t("hr.paidAmount")} <SplitAmount parts={{ usd: row.paid_usd ?? 0, iqd: row.paid_iqd ?? 0 }} />
+                    </div>
+                  )}
+                  {row.paid_note && <div className="max-w-56 truncate text-xs font-normal text-muted-foreground" title={row.paid_note}>{row.paid_note}</div>}
+                </TableCell>
+                <TableCell className="text-end">
+                  {row.paid_at ? (
+                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(() => setPayrollPaid(row.id, false))} title={t("hr.unpaid")}>
+                      <Undo2 /> <span className="text-emerald-700 dark:text-emerald-400">{t("hr.paidOn", { date: formatDate(row.paid_at, locale) })}</span>
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled={pending} onClick={() => openPay(row)}>
+                      <Check /> {t("hr.markPaid")}
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+          {rows.length > 0 && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={2}>{t("hr.totalNet")}</TableCell>
+                <TableCell className="text-end font-semibold">
+                  <NetTotal rows={rows} />
+                </TableCell>
+                <TableCell />
+              </TableRow>
+            </TableFooter>
+          )}
+        </Table>
+      </div>
+
+      {/* Paying one person: how much in each currency, and a note */}
+      <FormDialog
+        title={`${t("hr.markPaid")}${paying ? ` · ${paying.employee_name}` : ""}`}
+        open={!!paying}
+        onOpenChange={(open) => !open && setPaying(null)}
+        pending={pending}
+        onSubmit={() =>
+          paying &&
+          run(() => payPayroll(paying.id, { usd: num(pay.usd), iqd: num(pay.iqd), rate: rateOf(paying), note: pay.note || null }), {
+            success: t("common.saved"),
+            then: () => setPaying(null),
+          })
+        }
+      >
+        {paying && (
+          <p className="text-sm text-muted-foreground">
+            {t("hr.net")}: <RowNet row={paying} />
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="USD">
+            <NumberInput value={pay.usd} onChange={(e) => setPay({ ...pay, usd: e.target.value })} placeholder="0.00" className="text-end tabular-nums" autoFocus />
+          </Field>
+          <Field label="IQD">
+            <NumberInput value={pay.iqd} onChange={(e) => setPay({ ...pay, iqd: e.target.value })} placeholder="0" className="text-end tabular-nums" />
+          </Field>
+        </div>
+        <Field label={t("hr.reason")}>
+          <Input value={pay.note} onChange={(e) => setPay({ ...pay, note: e.target.value })} />
+        </Field>
+      </FormDialog>
+    </section>
+  )
+}
+
+export function PayrollView({ month, rows, missing }: { month: string; rows: PayrollRow[]; missing: number }) {
   const { t } = useI18n()
   const router = useRouter()
   const { pending, run } = useAction()
-  const total = rows.reduce((s, r) => s + r.base_usd - r.deductions_usd + r.bonuses_usd, 0)
+  // The month's rows are made for everyone without one, as soon as the month is opened (no button)
+  const [made, setMade] = useState<string | null>(null)
+  if (missing > 0 && made !== month) {
+    setMade(month)
+    queueMicrotask(() => run(() => generatePayroll(month)))
+  }
   // The small bonus / deduction form: for which row, and which entry when changing one
   const [editing, setEditing] = useState<{ rowId: string; itemId: string | null } | null>(null)
   const [form, setForm] = useState<ItemForm>(blankItem)
-  // The list of one row's entries
-  const [listFor, setListFor] = useState<string | null>(null)
-  const listed = rows.find((r) => r.id === listFor)
+  const todayRate = useRate()
   const editingRow = rows.find((r) => r.id === editing?.rowId)
 
   const openItem = (rowId: string, item?: PayrollItem, kind: PayrollItem["kind"] = "bonus") => {
-    setForm(item ? { kind: item.kind, amount: String(item.amount_usd), reason: item.reason ?? "" } : { ...blankItem(), kind })
+    const row = rows.find((r) => r.id === rowId)
+    setForm(
+      item
+        ? { kind: item.kind, amount: String(item.amount_usd), reason: item.reason ?? "", currency: item.currency, rate_per_100: item.rate_per_100 }
+        : { ...blankItem(), kind, currency: row?.currency ?? "usd", rate_per_100: row?.rate_per_100 ?? null },
+    )
     setEditing({ rowId, itemId: item?.id ?? null })
   }
 
@@ -469,58 +727,39 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
         title={t("hr.title")}
         tabs={<HrTabs />}
         actions={
-          <>
-            <Input
-              type="month"
-              aria-label={t("hr.month")}
-              title={t("hr.month")}
-              value={month.slice(0, 7)}
-              onChange={(e) => e.target.value && router.push(`/hr/payroll?month=${e.target.value}`)}
-              className="w-44"
-            />
-            <Button disabled={pending} onClick={() => run(() => generatePayroll(month), { success: t("hr.generated") })}>
-              <Wand2 /> {t("hr.generate")}
-            </Button>
-          </>
+          <MonthSwitch month={month} onChange={(m) => router.push(`/hr/payroll?month=${m}`)} />
         }
       />
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8" />
               <TableHead>{t("common.name")}</TableHead>
               <TableHead className="text-end">{t("hr.base")}</TableHead>
               <TableHead className="text-end">{t("hr.deductions")}</TableHead>
               <TableHead className="text-end">{t("hr.bonuses")}</TableHead>
-              <TableHead className="text-end">{t("hr.net")}</TableHead>
-              <TableHead className="w-56" />
+              <TableHead>{t("common.from")}</TableHead>
+              <TableHead>{t("common.to")}</TableHead>
+              <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  {t("hr.payrollEmpty")}
+                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                  {pending ? "…" : t("hr.payrollEmpty")}
                 </TableCell>
               </TableRow>
             )}
             {rows.map((row) => (
-              <PayrollLine key={row.id} row={row} onAdd={(kind) => openItem(row.id, undefined, kind)} onOpen={() => setListFor(row.id)} />
+              <PayrollLine key={row.id} row={row} onAdd={(kind) => openItem(row.id, undefined, kind)} onEdit={(item) => openItem(row.id, item)} />
             ))}
           </TableBody>
-          {rows.length > 0 && (
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={4}>{t("hr.totalNet")}</TableCell>
-                <TableCell className="text-end font-semibold">
-                  <Amount usd={total} />
-                </TableCell>
-                <TableCell />
-              </TableRow>
-            </TableFooter>
-          )}
         </Table>
       </div>
+
+      <PayrollSummary rows={rows.filter((r) => r.included)} />
 
       {/* Add or change one bonus / deduction */}
       <FormDialog
@@ -528,9 +767,10 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
         open={!!editing}
         onOpenChange={(open) => !open && setEditing(null)}
         pending={pending}
+        extra={editing?.itemId && <DeleteButton label action={() => deletePayrollItem(editing.itemId!)} then={() => setEditing(null)} />}
         onSubmit={() =>
           editing &&
-          run(() => savePayrollItem(editing.rowId, editing.itemId, { kind: form.kind, amount_usd: num(form.amount), reason: form.reason || null }), {
+          run(() => savePayrollItem(editing.rowId, editing.itemId, { kind: form.kind, amount_usd: num(form.amount), reason: form.reason || null, currency: form.currency, rate_per_100: form.rate_per_100 || todayRate }), {
             success: t("common.saved"),
             then: () => setEditing(null),
           })
@@ -551,45 +791,13 @@ export function PayrollView({ month, rows }: { month: string; rows: PayrollRow[]
           ))}
         </div>
         <Field label={t("common.amount")}>
-          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} currency={editingRow?.currency} rate={editingRow?.rate_per_100} required autoFocus />
+          <MoneyInput value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} currency={form.currency} onCurrencyChange={(c) => setForm({ ...form, currency: c })} rate={form.rate_per_100} required autoFocus />
         </Field>
         <Field label={t("hr.reason")}>
           <Input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t(form.kind === "bonus" ? "hr.reasonBonus" : "hr.reasonDeduction")} />
         </Field>
       </FormDialog>
 
-      {/* Everything added for one employee this month, to change or remove */}
-      <Dialog open={!!listed} onOpenChange={(open) => !open && setListFor(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{`${t("hr.editAdjustments")}${listed ? ` · ${listed.employee_name}` : ""}`}</DialogTitle>
-          </DialogHeader>
-        {listed && (
-          <div className="grid gap-2">
-            {listed.items.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">{t("hr.noAdjustments")}</p>}
-            {listed.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <div className={item.kind === "bonus" ? "font-medium text-emerald-700 dark:text-emerald-400" : "font-medium text-red-700 dark:text-red-400"}>
-                    {t(item.kind === "bonus" ? "hr.bonus" : "hr.deduction")} · <Amount usd={item.amount_usd} currency={listed.currency} rate={listed.rate_per_100} inline />
-                  </div>
-                  {item.reason && <div className="truncate text-xs text-muted-foreground">{item.reason}</div>}
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  <Button type="button" variant="ghost" size="icon-sm" aria-label={t("common.edit")} onClick={() => (setListFor(null), openItem(listed.id, item))}>
-                    <Pencil />
-                  </Button>
-                  <DeleteButton action={() => deletePayrollItem(item.id)} />
-                </div>
-              </div>
-            ))}
-            <Button type="button" variant="outline" onClick={() => (setListFor(null), openItem(listed.id))}>
-              <Plus /> {t("hr.addAdjustment")}
-            </Button>
-          </div>
-        )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

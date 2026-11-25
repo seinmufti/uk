@@ -107,10 +107,22 @@ export type PayrollRow = {
   month: string
   employee_id: string
   employee_name: string
+  /** The employee's hiring date */
+  hired: string | null
   base_usd: number
   deductions_usd: number
   bonuses_usd: number
   paid_at: string | null
+  /** What was handed over when paying, in each currency, and a note */
+  paid_usd: number | null
+  paid_iqd: number | null
+  paid_note: string | null
+  /** The period the salary is for: from the month's start (or the hiring date, if later) to its end by
+   * default; it's paid on the To date */
+  period_from: string | null
+  period_to: string | null
+  /** In this month's payroll (unticked: left out of the summary and can't be paid) */
+  included: boolean
   notes: string | null
   /** The bonuses and deductions that make up bonuses_usd / deductions_usd */
   items: PayrollItem[]
@@ -118,7 +130,8 @@ export type PayrollRow = {
   currency: AmountCurrency
   rate_per_100: number | null
 }
-export type PayrollItem = { id: string; kind: "bonus" | "deduction"; amount_usd: number; reason: string | null }
+/** currency / rate_per_100: what the amount was typed in, and the rate then */
+export type PayrollItem = { id: string; kind: "bonus" | "deduction"; amount_usd: number; reason: string | null; currency: AmountCurrency; rate_per_100: number | null }
 
 export type ReceiptKind = "in" | "out"
 export const RECEIPT_METHODS = ["cash", "bank", "other"] as const
