@@ -178,6 +178,11 @@ async function generatePayrollAction(month: string) {
       db().from("payroll").select("employee_id").eq("month", from),
     ])
     const done = new Set(must(existing).map((r) => r.employee_id))
+    // Unpaid rows made before their employee's salary changed currency or rate follow the employee
+    const stale = must(
+      await db().from("payroll").select("employee_id, currency, rate_per_100, employees(salary_currency, salary_rate)").eq("month", from).is("paid_at", null),
+    ) as unknown as { employee_id: string; currency: string; rate_per_100: string | null; employees: { salary_currency: string; salary_rate: string | null } | null }[]
+    for (const r of stale) if (r.employees && (r.currency !== r.employees.salary_currency || num(r.rate_per_100) !== num(r.employees.salary_rate))) await refreshPayroll(r.employee_id)
     for (const e of must(employees).filter((e) => !done.has(e.id))) {
       const m = await monthFor(e, from)
       const row = must(

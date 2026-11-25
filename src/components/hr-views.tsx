@@ -3,7 +3,7 @@
 import { Check, CheckCheck, ChevronLeft, ChevronRight, Minus, Pencil, Plus, Undo2 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -706,12 +706,15 @@ export function PayrollView({ month, rows, missing }: { month: string; rows: Pay
   const { t } = useI18n()
   const router = useRouter()
   const { pending, run } = useAction()
-  // The month's rows are made for everyone without one, as soon as the month is opened (no button)
-  const [made, setMade] = useState<string | null>(null)
-  if (missing > 0 && made !== month) {
-    setMade(month)
-    queueMicrotask(() => run(() => generatePayroll(month)))
-  }
+  // The month's rows are made for everyone without one (and unpaid ones brought up to date with their
+  // employee) as soon as the month is opened in the browser; once per month, so a failure can't loop
+  const made = useRef<string | null>(null)
+  useEffect(() => {
+    if (missing > 0 && made.current !== month) {
+      made.current = month
+      run(() => generatePayroll(month))
+    }
+  }, [missing, month, run])
   // The small bonus / deduction form: for which row, and which entry when changing one
   const [editing, setEditing] = useState<{ rowId: string; itemId: string | null } | null>(null)
   const [form, setForm] = useState<ItemForm>(blankItem)
